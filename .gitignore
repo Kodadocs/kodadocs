@@ -1,0 +1,4 @@
+.DS_Store
+.codedocs/
+.worktrees/
+storage_state.json
