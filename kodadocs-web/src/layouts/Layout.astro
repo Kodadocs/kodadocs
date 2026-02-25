@@ -1,6 +1,7 @@
 ---
 import "@fontsource-variable/inter";
 import "../styles/global.css";
+import Nav from "../components/Nav.astro";
 
 interface Props {
   title: string;
@@ -21,6 +22,7 @@ const { title, description = "AI-generated help docs for your web app — in min
     <title>{title}</title>
   </head>
   <body class="bg-bg-primary text-text-secondary">
+    <Nav />
     <slot />
   </body>
 </html>
