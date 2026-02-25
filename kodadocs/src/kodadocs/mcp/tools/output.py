@@ -130,6 +130,15 @@ hero:
 """
     (output_path / "index.md").write_text(index_content)
 
+    # Copy logo to assets if provided
+    logo_config = ""
+    if logo_path:
+        src_logo = Path(logo_path)
+        if src_logo.exists():
+            dest_name = re.sub(r'[^a-z0-9._-]', '-', src_logo.name.lower())
+            shutil.copy(src_logo, assets_dir / dest_name)
+            logo_config = f"    logo: '/assets/{dest_name}',\n"
+
     # VitePress config
     config_content = f"""import {{ defineConfig }} from 'vitepress'
 
@@ -139,7 +148,8 @@ export default defineConfig({{
   cleanUrls: true,
   ignoreDeadLinks: true,
   themeConfig: {{
-    nav: [
+    search: {{ provider: 'local' }},
+{logo_config}    nav: [
       {{ text: 'Home', link: '/' }},
       {{ text: 'Guide', link: '{guide_link}' }}
     ],

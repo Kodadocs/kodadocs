@@ -152,7 +152,7 @@ hero:
         f.write(index_content)
 
     # 5. Generate VitePress Config
-    
+
     config_content = f"""import {{ defineConfig }} from 'vitepress'
 
 export default defineConfig({{
@@ -161,6 +161,7 @@ export default defineConfig({{
   cleanUrls: true,
   ignoreDeadLinks: true,
   themeConfig: {{
+    search: {{ provider: 'local' }},
     nav: [
       {{ text: 'Home', link: '/' }},
       {{ text: 'Guide', link: '{guide_link}' }}
