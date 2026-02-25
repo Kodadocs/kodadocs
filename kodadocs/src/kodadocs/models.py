@@ -3,6 +3,8 @@ from typing import List, Dict, Optional, Any
 from enum import Enum
 from pathlib import Path
 
+from kodadocs.utils.license import LICENSE_KEY_PATTERN
+
 class Framework(str, Enum):
     NEXTJS = "Next.js"
     NUXT = "Nuxt"
@@ -47,7 +49,7 @@ class SessionConfig(BaseModel):
     generation_model: str = "claude-haiku-4-5-20251001"
     skip_ai: bool = False
     blur_pii: bool = True
-    license_key: Optional[str] = None
+    license_key: Optional[str] = Field(default=None, pattern=LICENSE_KEY_PATTERN, description="Pro license key (format: kd_pro_*)")
     site_slug: Optional[str] = None
 
 class StepStatus(str, Enum):
