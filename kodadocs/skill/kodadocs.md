@@ -170,9 +170,17 @@ Ask the user: "Would you like to deploy the help center?"
 
 If they want to deploy:
 
-1. **Check for Pro license** — ask: "Do you have a KodaDocs Pro license key? (Pro enables hosted deploy to yourapp.kodadocs.com and badge removal — $12/mo at https://kodadocs.com/pricing)"
-   - If they provide a key matching `kd_pro_*`, store it for the deploy call
-   - If not, explain: "No problem! Free-tier deploys work great with self-hosted providers. Note: free deploys include a small 'Powered by KodaDocs' badge."
+1. **Check for Pro license** — check if `KODADOCS_LICENSE_KEY` is set in the environment. If not, ask: "Do you have a KodaDocs Pro license key? (Pro enables hosted deploy to yourapp.kodadocs.com and badge removal — $12/mo at https://kodadocs.com/pricing)"
+   - If they provide a key matching `kd_pro_*`, pass it to the deploy tool
+   - If they want to save it permanently, tell them to add it to their MCP server config:
+     ```json
+     "kodadocs": {
+       "command": "uvx",
+       "args": ["kodadocs", "mcp"],
+       "env": { "KODADOCS_LICENSE_KEY": "kd_pro_xxxxxxxxxxxx" }
+     }
+     ```
+   - If no key, explain: "No problem! Free-tier deploys work great with self-hosted providers. Note: free deploys include a small 'Powered by KodaDocs' badge."
 2. **Detect provider** — check if the manifest has a `deployment_platform` from Phase 1 discovery
 3. **Ask which provider** — suggest the auto-detected one if available, otherwise list options:
    - **Cloudflare Pages** — requires `CLOUDFLARE_API_TOKEN` env var, install: `npm install -g wrangler`
