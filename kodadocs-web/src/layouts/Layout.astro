@@ -26,5 +26,21 @@ const { title, description = "AI-generated help docs for your web app — in min
     <Nav />
     <slot />
     <Footer />
+    <script>
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      document.querySelectorAll(".reveal, .reveal-stagger").forEach((el) => {
+        observer.observe(el);
+      });
+    </script>
   </body>
 </html>

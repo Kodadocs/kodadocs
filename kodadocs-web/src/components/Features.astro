@@ -40,7 +40,7 @@ const features = [
       <p class="text-text-secondary text-lg max-w-2xl mx-auto">From code analysis to published help center — KodaDocs handles the entire pipeline.</p>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 reveal-stagger">
       {features.map((feature) => (
         <div class="group rounded-xl border border-border bg-bg-secondary p-6 hover:border-accent/30 transition-colors">
           <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-accent/10 text-accent mb-4 group-hover:bg-accent/20 transition-colors" set:html={feature.icon} />
