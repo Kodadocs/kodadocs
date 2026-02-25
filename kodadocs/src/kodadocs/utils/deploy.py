@@ -96,11 +96,16 @@ def _build_command(provider: str, dist_dir: Path, project_name: str) -> list[str
         return ["wrangler", "pages", "deploy", dist, f"--project-name={project_name}"]
     elif provider == "vercel":
         token = os.environ.get("VERCEL_TOKEN", "")
-        return ["vercel", "deploy", "--prod", "--token", token, dist]
+        # --cwd points to the docs root (dist_dir is <docs>/.vitepress/dist, so parent.parent = docs root)
+        # --yes skips interactive project setup prompts
+        # Do NOT pass dist as positional arg — Vercel CLI interprets it as project name
+        docs_root = str(dist_dir.parent.parent)
+        return ["vercel", "--cwd", docs_root, "--prod", "--yes", "--token", token]
     elif provider == "netlify":
         token = os.environ.get("NETLIFY_AUTH_TOKEN", "")
         site_id = os.environ.get("NETLIFY_SITE_ID", "")
-        return ["netlify", "deploy", "--dir", dist, "--prod", "--auth", token, "--site", site_id]
+        # --no-build prevents netlify-cli v21+ from running a build before deploying pre-built output
+        return ["netlify", "deploy", "--no-build", "--dir", dist, "--prod", "--auth", token, "--site", site_id]
     elif provider == "github-pages":
         return ["npx", "gh-pages", "-d", dist]
     else:
