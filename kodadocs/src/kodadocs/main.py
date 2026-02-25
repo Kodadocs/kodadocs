@@ -16,9 +16,7 @@ import json
 from dotenv import load_dotenv
 import os
 
-# Load environment variables (first found wins with override=False)
-load_dotenv(override=False)
-load_dotenv(Path(__file__).parent.parent.parent / ".env", override=False)
+# Load environment variables from ~/.kodadocs.env (global config, not per-project)
 load_dotenv(Path.home() / ".kodadocs.env", override=False)
 
 app = typer.Typer(
