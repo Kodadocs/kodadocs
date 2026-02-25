@@ -93,5 +93,6 @@ class RunManifest(BaseModel):
     confidence_scores: Dict[str, float] = Field(default_factory=dict) # article -> score
     deploy_url: Optional[str] = None
     deploy_status: Optional[str] = None  # "success" | "failed" | "skipped"
+    site_slug: Optional[str] = None
     
     model_config = ConfigDict(use_enum_values=True)

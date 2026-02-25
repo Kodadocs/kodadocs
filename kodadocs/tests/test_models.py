@@ -204,3 +204,23 @@ def test_session_config_site_slug_explicit(tmp_path):
     """SessionConfig accepts an explicit site_slug."""
     config = SessionConfig(project_path=tmp_path, site_slug="myapp")
     assert config.site_slug == "myapp"
+
+
+def test_run_manifest_site_slug_default(tmp_path):
+    """RunManifest.site_slug should default to None."""
+    config = SessionConfig(project_path=tmp_path)
+    manifest = RunManifest(session_id="slug_test", config=config)
+    assert manifest.site_slug is None
+
+
+def test_run_manifest_site_slug_roundtrip(tmp_path):
+    """site_slug survives serialization roundtrip."""
+    config = SessionConfig(project_path=tmp_path)
+    manifest = RunManifest(
+        session_id="slug_rt",
+        config=config,
+        site_slug="myapp",
+    )
+    json_str = manifest.model_dump_json()
+    restored = RunManifest.model_validate_json(json_str)
+    assert restored.site_slug == "myapp"
