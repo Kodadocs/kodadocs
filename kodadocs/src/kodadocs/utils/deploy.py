@@ -149,6 +149,10 @@ def deploy(
 
     Pre-flight checks run before any subprocess call.
     Badge injection happens before provider dispatch.
+
+    ``license_key`` and ``site_slug`` are reserved for Phase 2
+    (KodaDocs hosted deploy).  Passed through for API compatibility;
+    no validation yet.
     """
     # Validate provider
     if provider not in SUPPORTED_PROVIDERS:
