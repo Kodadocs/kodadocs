@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from kodadocs.utils.badge import inject_badge
+from kodadocs.utils.license import is_pro_key
 
 
 @dataclass
@@ -18,13 +19,14 @@ class DeployResult:
     error: Optional[str] = None
 
 
-SUPPORTED_PROVIDERS = {"cloudflare", "vercel", "netlify", "github-pages"}
+SUPPORTED_PROVIDERS = {"cloudflare", "vercel", "netlify", "github-pages", "kodadocs"}
 
 _PROVIDER_CLI = {
     "cloudflare": "wrangler",
     "vercel": "vercel",
     "netlify": "netlify",
     "github-pages": "npx",
+    "kodadocs": None,  # Not a CLI-based provider; uses API (Plan 06-03)
 }
 
 _PROVIDER_ENV = {
@@ -32,6 +34,7 @@ _PROVIDER_ENV = {
     "vercel": ["VERCEL_TOKEN"],
     "netlify": ["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"],
     "github-pages": [],
+    "kodadocs": ["KODADOCS_LICENSE_KEY"],
 }
 
 _PROVIDER_INSTALL_HINT = {
@@ -39,6 +42,7 @@ _PROVIDER_INSTALL_HINT = {
     "vercel": "npm install -g vercel",
     "netlify": "npm install -g netlify-cli",
     "github-pages": "npm install -g gh-pages",
+    "kodadocs": "Get a Pro license at https://kodadocs.com",
 }
 
 _PROVIDER_TIMEOUT = {
@@ -46,6 +50,7 @@ _PROVIDER_TIMEOUT = {
     "vercel": 120,
     "netlify": 120,
     "github-pages": 180,
+    "kodadocs": 120,
 }
 
 
@@ -72,8 +77,15 @@ def resolve_provider(
 
 
 def _check_cli(provider: str) -> Optional[str]:
-    """Check if the provider's CLI is installed. Returns error message or None."""
+    """Check if the provider's CLI is installed. Returns error message or None.
+
+    Returns None (no error) when the provider has no CLI (e.g., 'kodadocs'
+    uses a direct API call instead of a subprocess).
+    """
     cli = _PROVIDER_CLI[provider]
+    if cli is None:
+        # No CLI required for this provider (API-based deploy)
+        return None
     if shutil.which(cli) is None:
         hint = _PROVIDER_INSTALL_HINT[provider]
         return f"CLI '{cli}' not found. Install it with: {hint}"
@@ -175,8 +187,9 @@ def deploy(
             error=f"Build directory not found: {dist_dir}. Run the build step first.",
         )
 
-    # Inject badge into all HTML files
-    inject_badge(dist_dir)
+    # Inject badge only for free tier (no valid Pro license key)
+    if not is_pro_key(license_key):
+        inject_badge(dist_dir)
 
     # Pre-flight: CLI installed?
     cli_err = _check_cli(provider)
@@ -187,6 +200,14 @@ def deploy(
     env_err = _check_env(provider)
     if env_err:
         return DeployResult(success=False, provider=provider, error=env_err)
+
+    # 'kodadocs' provider uses a direct API (Plan 06-03); subprocess not applicable.
+    if provider == "kodadocs":
+        return DeployResult(
+            success=False,
+            provider=provider,
+            error="KodaDocs hosted deploy not yet implemented (coming in Plan 06-03).",
+        )
 
     # Build and run command
     cmd = _build_command(provider, dist_dir, project_name)
