@@ -13,11 +13,7 @@ from .pipeline.output import output_step
 from .pipeline.enrichment import enrichment_step
 from .pipeline.annotation import annotation_step
 import json
-from dotenv import load_dotenv
 import os
-
-# Load environment variables from ~/.kodadocs.env (global config, not per-project)
-load_dotenv(Path.home() / ".kodadocs.env", override=False)
 
 app = typer.Typer(
     help="KodaDocs - AI-powered end-user documentation generator",

@@ -13,7 +13,7 @@ Before starting, verify:
 1. Run `which kodadocs` via Bash to confirm kodadocs is installed
 2. Call the `detect_framework` MCP tool with the current project path to verify the MCP server is connected
 3. Check for `.kodadocs/session_config.json` — if it exists, load it for app_url, auth, brand settings
-4. Check that `ANTHROPIC_API_KEY` is set (KodaDocs reads env vars from `~/.kodadocs.env` — not from the project's `.env`)
+4. Check that `ANTHROPIC_API_KEY` is set in the shell environment (if using Claude Code, it's already set)
 
 If kodadocs is not installed, tell the user: "Install kodadocs first: `pip install kodadocs` or `uvx install kodadocs`"
 

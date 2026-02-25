@@ -25,7 +25,6 @@ dependencies = [
     "tree-sitter-typescript",
     "anthropic",
     "pillow",
-    "python-dotenv",
     "playwright",
     "fastmcp>=2.0",
 ]
