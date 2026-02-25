@@ -235,3 +235,31 @@ class TestMcpDeployTool:
         data = json.loads(raw)
         assert data["status"] == "error"
         assert "provider" in data["error"].lower()
+
+    def test_accepts_license_key_and_site_slug(self, tmp_path, monkeypatch):
+        """deploy_site_tool accepts license_key and site_slug without error."""
+        from kodadocs.mcp.tools.deploy import deploy_site_tool
+
+        site_dir = tmp_path / "docs"
+        vitepress_dist = site_dir / ".vitepress" / "dist"
+        vitepress_dist.mkdir(parents=True)
+        (vitepress_dist / "index.html").write_text("<html><head></head><body></body></html>")
+
+        monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "tok")
+
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "https://mysite.pages.dev\n"
+        mock_result.stderr = ""
+
+        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
+             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+            raw = deploy_site_tool(
+                str(site_dir), "mysite",
+                provider="cloudflare",
+                license_key="kd_pro_abc12345",
+                site_slug="mysite",
+            )
+
+        data = json.loads(raw)
+        assert data["status"] == "ok"
