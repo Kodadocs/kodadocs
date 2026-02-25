@@ -1,4 +1,5 @@
 .DS_Store
 .codedocs/
+.firecrawl/
 .worktrees/
 storage_state.json
