@@ -42,6 +42,13 @@ class TestResolveProvider:
         assert resolve_provider(explicit="Vercel") == "vercel"
         assert resolve_provider(explicit="CLOUDFLARE") == "cloudflare"
 
+    def test_kodadocs_provider_is_supported(self):
+        assert resolve_provider(explicit="kodadocs") == "kodadocs"
+
+    def test_all_supported_providers_resolve(self):
+        for p in ("cloudflare", "vercel", "netlify", "github-pages", "kodadocs"):
+            assert resolve_provider(explicit=p) == p, f"Provider '{p}' should resolve"
+
 
 # ── Pre-flight validation ───────────────────────────────────────────────
 

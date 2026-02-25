@@ -22,7 +22,7 @@ def deploy_site_tool(
     if resolved is None:
         return json.dumps({
             "status": "error",
-            "error": "No provider specified. Pass provider='cloudflare', 'vercel', 'netlify', or 'github-pages'.",
+            "error": "No provider specified. Pass provider='cloudflare', 'vercel', 'netlify', 'github-pages', or 'kodadocs'.",
         })
 
     dist_dir = Path(site_dir) / ".vitepress" / "dist"

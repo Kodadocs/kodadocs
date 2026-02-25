@@ -16,7 +16,7 @@ import json
 import os
 
 app = typer.Typer(
-    help="KodaDocs - AI-powered end-user documentation generator",
+    help="KodaDocs — Claude Code MCP tool for generating end-user help documentation. Primary usage: add the MCP server to Claude Code and tell Claude 'Generate docs for my app'.",
     invoke_without_command=True,
 )
 console = Console()
@@ -36,7 +36,33 @@ def main(
     ),
 ):
     if ctx.invoked_subcommand is None:
-        generate(path=Path("."), url=None, fresh=False, do_deploy=False)
+        console.print()
+        console.print(f"  [bold cyan]KodaDocs {VERSION}[/bold cyan]")
+        console.print(f"  Claude Code MCP tool for generating help documentation")
+        console.print()
+        console.print("[bold]Recommended: Use with Claude Code (MCP)[/bold]")
+        console.print()
+        console.print('  Add to [cyan]~/.claude/settings.json[/cyan]:')
+        console.print()
+        console.print('    [dim]{[/dim]')
+        console.print('      [dim]"mcpServers": {[/dim]')
+        console.print('        [dim]"kodadocs": {[/dim]')
+        console.print('          [dim]"command": "uvx",[/dim]')
+        console.print('          [dim]"args": ["kodadocs", "mcp"][/dim]')
+        console.print('        [dim]}[/dim]')
+        console.print('      [dim]}[/dim]')
+        console.print('    [dim]}[/dim]')
+        console.print()
+        console.print('  Then tell Claude: [green]"Generate help docs for my app"[/green]')
+        console.print()
+        console.print("[bold]CLI commands (power users):[/bold]")
+        console.print()
+        console.print("  kodadocs generate .     Run full pipeline directly")
+        console.print("  kodadocs deploy .       Deploy generated docs")
+        console.print("  kodadocs init .         Interactive setup wizard")
+        console.print("  kodadocs config .       View/update configuration")
+        console.print("  kodadocs mcp            Start MCP server")
+        console.print()
 
 @app.command()
 def init(
@@ -178,7 +204,7 @@ def generate(
     wp_pass: Optional[str] = typer.Option(None, "--pass", help="WordPress admin password"),
     do_deploy: bool = typer.Option(False, "--deploy", help="Deploy after generation"),
 ):
-    """Runs the full KodaDocs pipeline. Works without prior 'kodadocs init'."""
+    """Run the full pipeline directly (CLI mode). For most users, the MCP + Claude Code path is recommended instead."""
     path = path.resolve()
 
     if not path.exists():
@@ -290,7 +316,7 @@ def deploy_cmd(
     resolved = resolve_provider(explicit=provider, detected=detected_platform)
     if resolved is None:
         console.print("[bold red]Error: No deploy provider specified.[/bold red]")
-        console.print("Use [bold]--provider[/bold] to choose one: cloudflare, vercel, netlify, github-pages")
+        console.print("Use [bold]--provider[/bold] to choose one: cloudflare, vercel, netlify, github-pages, kodadocs")
         if detected_platform:
             console.print(f"Detected platform '{detected_platform}' is not a supported deploy target.")
         raise typer.Exit(code=1)
