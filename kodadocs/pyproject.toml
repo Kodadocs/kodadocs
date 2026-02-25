@@ -1,0 +1,46 @@
+[project]
+name = "kodadocs"
+version = "0.1.0"
+description = "AI-powered end-user documentation generator"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{name = "KodaDocs"}]
+keywords = ["documentation", "ai", "vitepress", "help-center", "screenshots"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "typer",
+    "rich",
+    "pydantic>=2.0",
+    "tree-sitter>=0.21.0",
+    "tree-sitter-python",
+    "tree-sitter-javascript",
+    "tree-sitter-typescript",
+    "anthropic",
+    "pillow",
+    "python-dotenv",
+    "playwright",
+    "fastmcp>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-mock"]
+
+[project.scripts]
+kodadocs = "kodadocs.main:app"
+
+[project.urls]
+Homepage = "https://github.com/kodadocs/kodadocs"
+Repository = "https://github.com/kodadocs/kodadocs"
+Issues = "https://github.com/kodadocs/kodadocs/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
