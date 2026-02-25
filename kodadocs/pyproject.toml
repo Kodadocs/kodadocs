@@ -1,17 +1,19 @@
 [project]
 name = "kodadocs"
 version = "0.1.0"
-description = "AI-powered end-user documentation generator"
+description = "Claude Code MCP tool that auto-generates help documentation for web applications"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [{name = "KodaDocs"}]
-keywords = ["documentation", "ai", "vitepress", "help-center", "screenshots"]
+keywords = ["documentation", "ai", "mcp", "claude-code", "vitepress", "help-center", "screenshots"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
 ]
@@ -30,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-mock"]
+dev = ["pytest>=8.0", "pytest-mock", "ruff"]
 
 [project.scripts]
 kodadocs = "kodadocs.main:app"
