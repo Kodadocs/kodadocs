@@ -10,6 +10,8 @@ from typing import Optional
 from kodadocs.utils.badge import inject_badge
 from kodadocs.utils.license import is_pro_key
 
+KODADOCS_API_URL = os.environ.get("KODADOCS_API_URL", "https://api.kodadocs.com")
+
 
 @dataclass
 class DeployResult:
@@ -154,6 +156,60 @@ def _extract_url(provider: str, project_name: str, stdout: str) -> Optional[str]
     return None
 
 
+def deploy_to_kodadocs(dist_dir: Path, site_slug: str, license_key: str) -> DeployResult:
+    """ZIP dist dir and upload to KodaDocs deploy API."""
+    import httpx
+
+    # Create ZIP archive in parent directory
+    zip_path = dist_dir.parent / f"{site_slug}.zip"
+    try:
+        shutil.make_archive(str(zip_path.with_suffix("")), "zip", dist_dir)
+
+        with open(zip_path, "rb") as f:
+            response = httpx.post(
+                f"{KODADOCS_API_URL}/deploy",
+                headers={"X-License-Key": license_key},
+                files={"site": (f"{site_slug}.zip", f, "application/zip")},
+                data={"slug": site_slug},
+                timeout=120.0,
+            )
+
+        if response.status_code == 200:
+            data = response.json()
+            return DeployResult(
+                success=True,
+                url=data.get("url", f"https://{site_slug}.kodadocs.com"),
+                provider="kodadocs",
+            )
+        else:
+            error_data = (
+                response.json()
+                if response.headers.get("content-type", "").startswith("application/json")
+                else {}
+            )
+            return DeployResult(
+                success=False,
+                provider="kodadocs",
+                error=error_data.get("error", f"API returned {response.status_code}"),
+            )
+    except httpx.TimeoutException:
+        return DeployResult(
+            success=False,
+            provider="kodadocs",
+            error="Upload timed out after 120s",
+        )
+    except httpx.HTTPError as e:
+        return DeployResult(
+            success=False,
+            provider="kodadocs",
+            error=f"Upload failed: {e}",
+        )
+    finally:
+        # Always clean up ZIP
+        if zip_path.exists():
+            zip_path.unlink(missing_ok=True)
+
+
 def deploy(
     dist_dir: Path,
     project_name: str,
@@ -167,9 +223,9 @@ def deploy(
     Pre-flight checks run before any subprocess call.
     Badge injection happens before provider dispatch.
 
-    ``license_key`` and ``site_slug`` are reserved for Phase 2
-    (KodaDocs hosted deploy).  Passed through for API compatibility;
-    no validation yet.
+    For the ``kodadocs`` provider, ``license_key`` and ``site_slug`` are
+    required — both are validated before the upload attempt. Badge injection
+    is skipped for the ``kodadocs`` provider (Pro-only feature).
     """
     # Validate provider
     if provider not in SUPPORTED_PROVIDERS:
@@ -187,6 +243,26 @@ def deploy(
             error=f"Build directory not found: {dist_dir}. Run the build step first.",
         )
 
+    # kodadocs provider: validate, skip badge, call API directly
+    if provider == "kodadocs":
+        if not is_pro_key(license_key):
+            return DeployResult(
+                success=False,
+                provider=provider,
+                error=(
+                    "KodaDocs hosting requires a Pro license key. "
+                    "Get one at https://kodadocs.com"
+                ),
+            )
+        if not site_slug:
+            return DeployResult(
+                success=False,
+                provider=provider,
+                error="KodaDocs hosting requires a site slug. Use --slug mysite",
+            )
+        # Badge injection is skipped for Pro/kodadocs provider
+        return deploy_to_kodadocs(dist_dir, site_slug, license_key)
+
     # Inject badge only for free tier (no valid Pro license key)
     if not is_pro_key(license_key):
         inject_badge(dist_dir)
@@ -200,14 +276,6 @@ def deploy(
     env_err = _check_env(provider)
     if env_err:
         return DeployResult(success=False, provider=provider, error=env_err)
-
-    # 'kodadocs' provider uses a direct API (Plan 06-03); subprocess not applicable.
-    if provider == "kodadocs":
-        return DeployResult(
-            success=False,
-            provider=provider,
-            error="KodaDocs hosted deploy not yet implemented (coming in Plan 06-03).",
-        )
 
     # Build and run command
     cmd = _build_command(provider, dist_dir, project_name)
