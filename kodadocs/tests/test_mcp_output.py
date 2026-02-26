@@ -287,3 +287,50 @@ def test_assemble_deduplicates_duplicate_title_slugs(tmp_path):
     config = (output_dir / ".vitepress" / "config.mts").read_text()
     assert "/faq" in config
     assert "/faq-1" in config
+
+
+def test_assemble_applies_theme_preset(tmp_path):
+    """When theme_name is given, CSS should use that theme's colors instead of brand_color."""
+    screenshots_dir = tmp_path / "screenshots"
+    screenshots_dir.mkdir()
+    output_dir = tmp_path / "output"
+
+    result_json = assemble_vitepress_tool(
+        articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
+        screenshots_dir=str(screenshots_dir),
+        brand_color="#3e8fb0",
+        logo_path=None,
+        output_dir=str(output_dir),
+        project_name="TestApp",
+        product_summary="A test app.",
+        discovered_routes=["/"],
+        theme_name="professional",
+    )
+
+    style_css = (output_dir / ".vitepress" / "theme" / "style.css").read_text()
+    # Professional theme uses #2563eb, not the passed brand_color
+    assert "#2563eb" in style_css
+    assert ".dark" in style_css
+    assert "--vp-c-brand-1" in style_css
+    assert "--vp-font-family-base" in style_css
+
+
+def test_assemble_falls_back_to_brand_color_without_theme(tmp_path):
+    """When theme_name is None or 'default', uses brand_color for backward compat."""
+    screenshots_dir = tmp_path / "screenshots"
+    screenshots_dir.mkdir()
+    output_dir = tmp_path / "output"
+
+    result_json = assemble_vitepress_tool(
+        articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
+        screenshots_dir=str(screenshots_dir),
+        brand_color="#ff0000",
+        logo_path=None,
+        output_dir=str(output_dir),
+        project_name="TestApp",
+        product_summary="A test app.",
+        discovered_routes=["/"],
+    )
+
+    style_css = (output_dir / ".vitepress" / "theme" / "style.css").read_text()
+    assert "#ff0000" in style_css

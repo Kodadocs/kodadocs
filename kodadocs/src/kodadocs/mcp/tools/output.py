@@ -5,6 +5,8 @@ import unicodedata
 from pathlib import Path
 from typing import Optional
 
+from kodadocs.themes.loader import load_theme
+
 
 def _slugify(title: str) -> str:
     """Stable, human-readable slug from article title via NFKD normalization."""
@@ -65,6 +67,7 @@ def assemble_vitepress_tool(
     hero_cta_link: Optional[str] = None,
     feature_highlights: Optional[list[dict]] = None,
     show_product_summary: bool = True,
+    theme_name: Optional[str] = None,
 ) -> str:
     """Assemble a VitePress static site from articles and screenshots.
     Returns JSON with status and output path.
@@ -177,13 +180,31 @@ export default defineConfig({{
         "import './style.css'\n\n"
         "export default DefaultTheme\n"
     )
-    (theme_dir / "style.css").write_text(
-        f":root {{\n"
-        f"  --vp-c-brand-1: {brand_color};\n"
-        f"  --vp-c-brand-2: {brand_color};\n"
-        f"  --vp-c-brand-3: {brand_color};\n"
-        f"}}\n"
-    )
+    # Generate theme CSS
+    if theme_name and theme_name != "default":
+        try:
+            theme = load_theme(theme_name)
+            css_content = theme.to_css()
+        except ValueError:
+            # Fall back to brand_color if theme not found
+            css_content = (
+                f":root {{\n"
+                f"  --vp-c-brand-1: {brand_color};\n"
+                f"  --vp-c-brand-2: {brand_color};\n"
+                f"  --vp-c-brand-3: {brand_color};\n"
+                f"}}\n"
+            )
+    else:
+        # Use brand_color directly (backward compatible)
+        css_content = (
+            f":root {{\n"
+            f"  --vp-c-brand-1: {brand_color};\n"
+            f"  --vp-c-brand-2: {brand_color};\n"
+            f"  --vp-c-brand-3: {brand_color};\n"
+            f"}}\n"
+        )
+
+    (theme_dir / "style.css").write_text(css_content)
 
     # package.json
     if not (output_path / "package.json").exists():
