@@ -225,6 +225,21 @@ def test_tagline_bullet_list():
     assert result == "A rental management app."
 
 
+def test_output_step_applies_theme_preset(tmp_path):
+    """Pipeline output should use theme preset when config has theme_name."""
+    from kodadocs.pipeline.output import output_step
+
+    manifest = _make_manifest(tmp_path)
+    manifest.config.theme_name = "professional"
+
+    with patch("subprocess.run"):
+        output_step(manifest)
+
+    style_css = (tmp_path / "docs" / ".vitepress" / "theme" / "style.css").read_text()
+    assert "#2563eb" in style_css
+    assert ".dark" in style_css
+
+
 def test_tagline_quote_escaping():
     from kodadocs.pipeline.output import _extract_tagline
 
