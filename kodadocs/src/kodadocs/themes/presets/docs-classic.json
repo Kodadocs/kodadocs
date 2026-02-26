@@ -1,0 +1,16 @@
+{
+  "name": "docs-classic",
+  "display_name": "Docs Classic",
+  "description": "Traditional documentation style inspired by ReadTheDocs",
+  "colors": {
+    "brand": { "light": "#059669", "dark": "#34d399" },
+    "brand_hover": { "light": "#047857", "dark": "#6ee7b7" },
+    "brand_soft": { "light": "rgba(5,150,105,0.14)", "dark": "rgba(52,211,153,0.16)" },
+    "bg": { "light": "#ffffff", "dark": "#1a1a2e" },
+    "bg_alt": { "light": "#f0fdf4", "dark": "#16213e" },
+    "text": { "light": "#1f2937", "dark": "#d1d5db" },
+    "text_muted": { "light": "#4b5563", "dark": "#9ca3af" }
+  },
+  "font": "Lora, Georgia, serif",
+  "code_theme": "github-dark"
+}
