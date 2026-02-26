@@ -11,6 +11,7 @@ codedocs-ai-deep-dive.html
 codedocs-ai-implementation-research-2026-02-21.md
 kodadocs-web/
 kodadocs-api/
+kodadocs-dashboard/
 codedocs-cli/
 docs/
 **/package-lock.json
