@@ -13,3 +13,4 @@ kodadocs-web/
 kodadocs-api/
 codedocs-cli/
 docs/
+**/package-lock.json
