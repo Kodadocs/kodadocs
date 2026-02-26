@@ -46,6 +46,7 @@ class TestIsProKey:
     def test_license_key_pattern_is_string(self):
         """LICENSE_KEY_PATTERN must be a non-empty string (used in Pydantic Field)."""
         import re
+
         assert isinstance(LICENSE_KEY_PATTERN, str)
         assert len(LICENSE_KEY_PATTERN) > 0
         # Must compile without error
@@ -118,8 +119,12 @@ class TestBadgeSuppression:
         mock_result.stdout = "https://proj.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             deploy(dist, "proj", "cloudflare", license_key=None)
 
         content = (dist / "index.html").read_text()
@@ -138,8 +143,12 @@ class TestBadgeSuppression:
         mock_result.stdout = "https://proj.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             deploy(dist, "proj", "cloudflare", license_key="kd_pro_" + "a" * 20)
 
         content = (dist / "index.html").read_text()
@@ -158,8 +167,12 @@ class TestBadgeSuppression:
         mock_result.stdout = "https://proj.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             deploy(dist, "proj", "cloudflare", license_key="not_a_real_key")
 
         content = (dist / "index.html").read_text()

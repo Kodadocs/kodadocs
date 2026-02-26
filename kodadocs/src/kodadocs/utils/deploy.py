@@ -119,7 +119,18 @@ def _build_command(provider: str, dist_dir: Path, project_name: str) -> list[str
         token = os.environ.get("NETLIFY_AUTH_TOKEN", "")
         site_id = os.environ.get("NETLIFY_SITE_ID", "")
         # --no-build prevents netlify-cli v21+ from running a build before deploying pre-built output
-        return ["netlify", "deploy", "--no-build", "--dir", dist, "--prod", "--auth", token, "--site", site_id]
+        return [
+            "netlify",
+            "deploy",
+            "--no-build",
+            "--dir",
+            dist,
+            "--prod",
+            "--auth",
+            token,
+            "--site",
+            site_id,
+        ]
     elif provider == "github-pages":
         return ["npx", "gh-pages", "-d", dist]
     else:
@@ -156,53 +167,78 @@ def _extract_url(provider: str, project_name: str, stdout: str) -> Optional[str]
     return None
 
 
-def deploy_to_kodadocs(dist_dir: Path, site_slug: str, license_key: str) -> DeployResult:
+def deploy_to_kodadocs(
+    dist_dir: Path, site_slug: str, license_key: str
+) -> DeployResult:
     """ZIP dist dir and upload to KodaDocs deploy API."""
-    import httpx
+    import json as _json
+    import urllib.request
+    import urllib.error
+    import uuid
 
     # Create ZIP archive in parent directory
     zip_path = dist_dir.parent / f"{site_slug}.zip"
     try:
         shutil.make_archive(str(zip_path.with_suffix("")), "zip", dist_dir)
 
-        with open(zip_path, "rb") as f:
-            response = httpx.post(
-                f"{KODADOCS_API_URL}/deploy",
-                headers={"X-License-Key": license_key},
-                files={"site": (f"{site_slug}.zip", f, "application/zip")},
-                data={"slug": site_slug},
-                timeout=120.0,
-            )
+        # Build multipart/form-data request using stdlib
+        boundary = uuid.uuid4().hex
+        body_parts = []
 
-        if response.status_code == 200:
-            data = response.json()
+        # slug field
+        body_parts.append(f"--{boundary}\r\n".encode())
+        body_parts.append(b'Content-Disposition: form-data; name="slug"\r\n\r\n')
+        body_parts.append(f"{site_slug}\r\n".encode())
+
+        # site file
+        body_parts.append(f"--{boundary}\r\n".encode())
+        body_parts.append(
+            f'Content-Disposition: form-data; name="site"; filename="{site_slug}.zip"\r\n'.encode()
+        )
+        body_parts.append(b"Content-Type: application/zip\r\n\r\n")
+        body_parts.append(zip_path.read_bytes())
+        body_parts.append(b"\r\n")
+
+        body_parts.append(f"--{boundary}--\r\n".encode())
+        body = b"".join(body_parts)
+
+        req = urllib.request.Request(
+            f"{KODADOCS_API_URL}/deploy",
+            data=body,
+            headers={
+                "X-License-Key": license_key,
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+                "User-Agent": "kodadocs-cli/1.0",
+            },
+            method="POST",
+        )
+
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = _json.loads(resp.read())
             return DeployResult(
                 success=True,
                 url=data.get("url", f"https://{site_slug}.kodadocs.com"),
                 provider="kodadocs",
             )
-        else:
-            error_data = (
-                response.json()
-                if response.headers.get("content-type", "").startswith("application/json")
-                else {}
-            )
-            return DeployResult(
-                success=False,
-                provider="kodadocs",
-                error=error_data.get("error", f"API returned {response.status_code}"),
-            )
-    except httpx.TimeoutException:
+
+    except urllib.error.HTTPError as e:
+        try:
+            error_body = _json.loads(e.read())
+            error_msg = error_body.get("error", f"API returned {e.code}")
+        except Exception:
+            error_msg = f"API returned {e.code}"
+        return DeployResult(success=False, provider="kodadocs", error=error_msg)
+    except urllib.error.URLError as e:
         return DeployResult(
-            success=False,
-            provider="kodadocs",
-            error="Upload timed out after 120s",
+            success=False, provider="kodadocs", error=f"Upload failed: {e.reason}"
         )
-    except httpx.HTTPError as e:
+    except TimeoutError:
         return DeployResult(
-            success=False,
-            provider="kodadocs",
-            error=f"Upload failed: {e}",
+            success=False, provider="kodadocs", error="Upload timed out after 120s"
+        )
+    except OSError as e:
+        return DeployResult(
+            success=False, provider="kodadocs", error=f"Upload failed: {e}"
         )
     finally:
         # Always clean up ZIP

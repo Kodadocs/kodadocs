@@ -1,9 +1,12 @@
-import pytest
 from pathlib import Path
 from kodadocs.models import (
-    SessionConfig, AuthConfig, Framework, RunManifest,
-    StepStatus, StepResult,
+    SessionConfig,
+    AuthConfig,
+    Framework,
+    RunManifest,
+    StepResult,
 )
+
 
 def test_session_config_defaults(tmp_path):
     config = SessionConfig(project_path=tmp_path)
@@ -15,25 +18,29 @@ def test_session_config_defaults(tmp_path):
     assert config.framework == "Unknown"  # use_enum_values stores as string
     assert config.brand_color == "#3e8fb0"
 
+
 def test_session_config_explicit_app_url(tmp_path):
     config = SessionConfig(app_url="http://localhost:8080", project_path=tmp_path)
     assert config.app_url == "http://localhost:8080"
 
+
 def test_session_config_with_auth(tmp_path):
-    auth = AuthConfig(username="user", password="pass", auth_url="http://localhost/login")
+    auth = AuthConfig(
+        username="user", password="pass", auth_url="http://localhost/login"
+    )
     config = SessionConfig(
-        app_url="http://localhost:3000",
-        project_path=tmp_path,
-        auth=auth
+        app_url="http://localhost:3000", project_path=tmp_path, auth=auth
     )
     assert config.auth.username == "user"
     assert config.auth.password == "pass"
+
 
 def test_framework_enum():
     assert Framework.NEXTJS.value == "Next.js"
     assert Framework.SVELTEKIT.value == "SvelteKit"
     assert Framework.RAILS.value == "Rails"
     assert Framework.LARAVEL.value == "Laravel"
+
 
 def test_run_manifest_creation(tmp_path):
     config = SessionConfig(project_path=tmp_path)
@@ -42,6 +49,7 @@ def test_run_manifest_creation(tmp_path):
     assert manifest.discovered_routes == []
     assert manifest.articles == []
     assert manifest.config_hash is None
+
 
 def test_run_manifest_serialization(tmp_path):
     config = SessionConfig(project_path=tmp_path)
@@ -59,11 +67,13 @@ def test_run_manifest_serialization(tmp_path):
     assert restored.discovered_routes == ["/", "/about"]
     assert restored.product_summary == "Test product"
 
+
 def test_step_result_defaults():
     step = StepResult(name="TestStep")
     assert step.status == "pending"  # use_enum_values
     assert step.cost_estimate == 0.0
     assert step.error is None
+
 
 def test_use_enum_values():
     """ConfigDict(use_enum_values=True) stores enum as its value string."""
@@ -196,8 +206,10 @@ def test_session_config_site_slug_default(tmp_path):
 
 def test_session_config_license_key_explicit(tmp_path):
     """SessionConfig accepts an explicit license_key."""
-    config = SessionConfig(project_path=tmp_path, license_key="kd_pro_abc12345")
-    assert config.license_key == "kd_pro_abc12345"
+    config = SessionConfig(
+        project_path=tmp_path, license_key="kd_pro_abc12345abcdefghijkl"
+    )
+    assert config.license_key == "kd_pro_abc12345abcdefghijkl"
 
 
 def test_session_config_site_slug_explicit(tmp_path):

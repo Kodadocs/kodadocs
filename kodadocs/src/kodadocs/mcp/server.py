@@ -19,31 +19,51 @@ def detect_framework(project_path: str) -> str:
 
 
 @mcp.tool
-def capture_screenshots(routes: list[str], app_url: str, auth: dict | None, output_dir: str, blur_pii: bool = True) -> str:
+def capture_screenshots(
+    routes: list[str],
+    app_url: str,
+    auth: dict | None,
+    output_dir: str,
+    blur_pii: bool = True,
+) -> str:
     """Capture screenshots for discovered routes using Playwright.
     Launches headless Chromium, authenticates if auth is provided,
     navigates to each route, captures screenshots, and extracts DOM elements.
     Returns JSON with screenshots dict and dom_elements dict.
     """
-    return capture_screenshots_tool(routes, app_url, auth, output_dir, blur_pii=blur_pii)
+    return capture_screenshots_tool(
+        routes, app_url, auth, output_dir, blur_pii=blur_pii
+    )
 
 
 @mcp.tool
-def annotate_screenshots(screenshots_dir: str, dom_elements: dict, brand_color: str = "#3e8fb0", pii_regions: dict | None = None) -> str:
+def annotate_screenshots(
+    screenshots_dir: str,
+    dom_elements: dict,
+    brand_color: str = "#3e8fb0",
+    pii_regions: dict | None = None,
+) -> str:
     """Annotate screenshots with numbered callouts using Pillow.
     Takes screenshot directory and dom_elements dict (route -> element list).
     Each element needs: role, name, bounds {x, y, width, height}.
     Creates annotated copies in screenshots_dir/annotated/.
     Returns JSON with route -> annotated image path.
     """
-    return annotate_screenshots_tool(screenshots_dir, dom_elements, brand_color, pii_regions=pii_regions)
+    return annotate_screenshots_tool(
+        screenshots_dir, dom_elements, brand_color, pii_regions=pii_regions
+    )
 
 
 @mcp.tool
 def assemble_vitepress(
-    articles: list[dict], screenshots_dir: str, brand_color: str,
-    logo_path: str | None, output_dir: str, project_name: str,
-    product_summary: str, discovered_routes: list[str],
+    articles: list[dict],
+    screenshots_dir: str,
+    brand_color: str,
+    logo_path: str | None,
+    output_dir: str,
+    project_name: str,
+    product_summary: str,
+    discovered_routes: list[str],
     hero_tagline: str | None = None,
     hero_cta_text: str | None = None,
     hero_cta_link: str | None = None,
@@ -54,8 +74,14 @@ def assemble_vitepress(
     Creates index page, article markdown files, VitePress config, theme with brand color, and package.json.
     """
     return assemble_vitepress_tool(
-        articles, screenshots_dir, brand_color, logo_path,
-        output_dir, project_name, product_summary, discovered_routes,
+        articles,
+        screenshots_dir,
+        brand_color,
+        logo_path,
+        output_dir,
+        project_name,
+        product_summary,
+        discovered_routes,
         hero_tagline=hero_tagline,
         hero_cta_text=hero_cta_text,
         hero_cta_link=hero_cta_link,
@@ -90,9 +116,12 @@ def deploy_site(
     Pass license_key for KodaDocs Pro features (badge removal, hosted deploy — coming soon).
     """
     return deploy_site_tool(
-        site_dir, project_name,
-        provider=provider, detected_platform=detected_platform,
-        license_key=license_key, site_slug=site_slug,
+        site_dir,
+        project_name,
+        provider=provider,
+        detected_platform=detected_platform,
+        license_key=license_key,
+        site_slug=site_slug,
     )
 
 

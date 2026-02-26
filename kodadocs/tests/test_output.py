@@ -1,7 +1,11 @@
-import pytest
 import json
-from pathlib import Path
-from kodadocs.models import SessionConfig, RunManifest, StepResult, StepStatus, Framework
+from kodadocs.models import (
+    SessionConfig,
+    RunManifest,
+    StepResult,
+    StepStatus,
+    Framework,
+)
 from unittest.mock import patch
 
 
@@ -48,10 +52,13 @@ def test_output_creates_index(tmp_path):
 def test_output_creates_article_pages(tmp_path):
     from kodadocs.pipeline.output import output_step
 
-    manifest = _make_manifest(tmp_path, articles=[
-        {"title": "Getting Started", "content": "# Getting Started\n\nWelcome."},
-        {"title": "Dashboard Guide", "content": "# Dashboard\n\nView your data."},
-    ])
+    manifest = _make_manifest(
+        tmp_path,
+        articles=[
+            {"title": "Getting Started", "content": "# Getting Started\n\nWelcome."},
+            {"title": "Dashboard Guide", "content": "# Dashboard\n\nView your data."},
+        ],
+    )
 
     with patch("subprocess.run"):
         output_step(manifest)
@@ -116,7 +123,9 @@ def test_output_copies_screenshots_to_assets(tmp_path):
     # Create a fake screenshot
     (ss_dir / "index.png").write_bytes(b"fake png data")
 
-    manifest = _make_manifest(tmp_path, screenshots={"/": ".kodadocs/screenshots/index.png"})
+    manifest = _make_manifest(
+        tmp_path, screenshots={"/": ".kodadocs/screenshots/index.png"}
+    )
     manifest.config.project_path = project_path
 
     with patch("subprocess.run"):
@@ -129,10 +138,13 @@ def test_output_hero_links_to_first_article(tmp_path):
     """Hero CTA should link to the first article slug, not hardcoded /getting-started."""
     from kodadocs.pipeline.output import output_step
 
-    manifest = _make_manifest(tmp_path, articles=[
-        {"title": "Welcome", "content": "# Welcome\n\nHello there."},
-        {"title": "Dashboard Guide", "content": "# Dashboard\n\nView your data."},
-    ])
+    manifest = _make_manifest(
+        tmp_path,
+        articles=[
+            {"title": "Welcome", "content": "# Welcome\n\nHello there."},
+            {"title": "Dashboard Guide", "content": "# Dashboard\n\nView your data."},
+        ],
+    )
 
     with patch("subprocess.run"):
         output_step(manifest)
@@ -156,3 +168,67 @@ def test_output_enables_local_search(tmp_path):
     config = config_file.read_text()
     assert "provider" in config
     assert "local" in config
+
+
+# --- _extract_tagline tests ---
+
+
+def test_tagline_simple_sentence():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    assert _extract_tagline("A rental management app.") == "A rental management app."
+
+
+def test_tagline_markdown_heading():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    result = _extract_tagline("# Product Overview\nA rental management app.")
+    assert result == "A rental management app."
+
+
+def test_tagline_multi_level_headings():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    result = _extract_tagline("## Product\n### Overview\nA rental management app.")
+    assert result == "A rental management app."
+
+
+def test_tagline_json_blob():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    result = _extract_tagline(
+        'A rental management app.\n\n```json\n{"articles": [{"title": "Getting Started"}]}\n```'
+    )
+    assert result == "A rental management app."
+
+
+def test_tagline_empty_input():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    assert _extract_tagline("") == "Help Center"
+    assert _extract_tagline(None) == "Help Center"
+
+
+def test_tagline_long_truncation():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    long_text = "A " + "very " * 30 + "long description of the product."
+    result = _extract_tagline(long_text)
+    assert len(result) <= 120
+    assert result.endswith("...")
+
+
+def test_tagline_bullet_list():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    result = _extract_tagline("- A rental management app.")
+    assert result == "A rental management app."
+
+
+def test_tagline_quote_escaping():
+    from kodadocs.pipeline.output import _extract_tagline
+
+    result = _extract_tagline('A "modern" rental app.')
+    assert '\\"' in result
+    # Should be safe for YAML embedding
+    assert result == 'A \\"modern\\" rental app.'

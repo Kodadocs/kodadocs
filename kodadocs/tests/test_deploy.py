@@ -1,17 +1,13 @@
 import json
 import subprocess
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 from kodadocs.utils.deploy import (
-    DeployResult,
     resolve_provider,
     deploy,
     _check_cli,
     _check_env,
-    SUPPORTED_PROVIDERS,
 )
 
 
@@ -102,8 +98,12 @@ class TestDeploy:
         mock_result.stdout = "https://my-project.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             result = deploy(dist, "my-project", "cloudflare")
 
         assert result.success is True
@@ -120,8 +120,10 @@ class TestDeploy:
         mock_result.stdout = "Deploying...\nhttps://my-app-abc123.vercel.app\nReady!\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/vercel"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/vercel"),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             result = deploy(dist, "my-app", "vercel")
 
         assert result.success is True
@@ -151,8 +153,12 @@ class TestDeploy:
         mock_result.stdout = ""
         mock_result.stderr = "Authentication failed"
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/netlify"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/netlify"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             result = deploy(dist, "proj", "netlify")
 
         assert result.success is False
@@ -163,8 +169,15 @@ class TestDeploy:
         dist.mkdir()
         monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "tok")
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", side_effect=subprocess.TimeoutExpired("wrangler", 120)):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch(
+                "kodadocs.utils.deploy.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("wrangler", 120),
+            ),
+        ):
             result = deploy(dist, "proj", "cloudflare")
 
         assert result.success is False
@@ -195,8 +208,12 @@ class TestDeploy:
         mock_result.stdout = "https://proj.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             deploy(dist, "proj", "cloudflare")
 
         content = html.read_text()
@@ -223,8 +240,12 @@ class TestMcpDeployTool:
         mock_result.stdout = "https://mysite.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             raw = deploy_site_tool(str(site_dir), "mysite", provider="cloudflare")
 
         data = json.loads(raw)
@@ -250,7 +271,9 @@ class TestMcpDeployTool:
         site_dir = tmp_path / "docs"
         vitepress_dist = site_dir / ".vitepress" / "dist"
         vitepress_dist.mkdir(parents=True)
-        (vitepress_dist / "index.html").write_text("<html><head></head><body></body></html>")
+        (vitepress_dist / "index.html").write_text(
+            "<html><head></head><body></body></html>"
+        )
 
         monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "tok")
 
@@ -259,10 +282,15 @@ class TestMcpDeployTool:
         mock_result.stdout = "https://mysite.pages.dev\n"
         mock_result.stderr = ""
 
-        with patch("kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"), \
-             patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result):
+        with (
+            patch(
+                "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
+            ),
+            patch("kodadocs.utils.deploy.subprocess.run", return_value=mock_result),
+        ):
             raw = deploy_site_tool(
-                str(site_dir), "mysite",
+                str(site_dir),
+                "mysite",
                 provider="cloudflare",
                 license_key="kd_pro_abc12345",
                 site_slug="mysite",

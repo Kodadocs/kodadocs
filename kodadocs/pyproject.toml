@@ -5,7 +5,7 @@ description = "Claude Code MCP tool that auto-generates help documentation for w
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-authors = [{name = "KodaDocs"}]
+authors = [{name = "KodaDocs", email = "hello@kodadocs.com"}]
 keywords = ["documentation", "ai", "mcp", "claude-code", "vitepress", "help-center", "screenshots"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -41,6 +41,11 @@ kodadocs = "kodadocs.main:app"
 Homepage = "https://github.com/kodadocs/kodadocs"
 Repository = "https://github.com/kodadocs/kodadocs"
 Issues = "https://github.com/kodadocs/kodadocs/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests requiring a running browser (deselect with '-m \"not integration\"')",
+]
 
 [build-system]
 requires = ["hatchling"]

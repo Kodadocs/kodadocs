@@ -1,6 +1,6 @@
 """Unit tests for the corrected deploy commands in _build_command."""
+
 import os
-from pathlib import Path
 from unittest.mock import patch
 
 from kodadocs.utils.deploy import _build_command
@@ -30,7 +30,9 @@ def test_netlify_command_includes_no_build(tmp_path):
     dist_dir = tmp_path / "docs" / ".vitepress" / "dist"
     dist_dir.mkdir(parents=True)
 
-    with patch.dict(os.environ, {"NETLIFY_AUTH_TOKEN": "tok", "NETLIFY_SITE_ID": "site123"}):
+    with patch.dict(
+        os.environ, {"NETLIFY_AUTH_TOKEN": "tok", "NETLIFY_SITE_ID": "site123"}
+    ):
         cmd = _build_command("netlify", dist_dir, "my-project")
 
     assert "--no-build" in cmd

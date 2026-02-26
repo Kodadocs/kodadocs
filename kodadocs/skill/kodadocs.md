@@ -15,9 +15,9 @@ Before starting, verify:
 3. Check for `.kodadocs/session_config.json` — if it exists, load it for app_url, auth, brand settings
 4. Check that `ANTHROPIC_API_KEY` is set in the shell environment (if using Claude Code, it's already set)
 
-If kodadocs is not installed, tell the user: "Install kodadocs first: `pip install kodadocs` or `uvx install kodadocs`"
+If kodadocs is not installed, tell the user: "Install kodadocs first: `pip install kodadocs`"
 
-If the MCP server is not connected, tell the user to add this to their `.claude/settings.json`:
+If the MCP server is not connected, tell the user to add this to their Claude Code config (`~/.claude/settings.json`):
 ```json
 {
   "mcpServers": {
@@ -39,7 +39,7 @@ If no session_config.json exists, ask the user for:
 
 ## Pipeline Phases
 
-Execute these phases in order. After each phase, call the `save_manifest` MCP tool to persist state.
+Execute these phases in order. After each phase, call the `save_manifest` MCP tool to persist state to `.kodadocs/run_manifest.json`.
 
 ### Phase 1: Discovery
 
@@ -201,6 +201,47 @@ If they want to deploy:
    - `license_key`: The Pro license key (if provided)
    - `site_slug`: The chosen subdomain (if KodaDocs Hosted)
 6. **Share the result** — on success, show the deployed URL; on failure, show the error with fix instructions (missing CLI, missing env var, etc.)
+
+### Phase 7: Incremental Update
+
+When the user says something like "I added a new page", "update my docs", or "I changed the dashboard" — and a `.kodadocs/run_manifest.json` already exists — suggest `kodadocs update` instead of a full `kodadocs generate`.
+
+**When to use `update` vs `generate`:**
+- **`update`**: Manifest exists, user added/removed/changed a few routes. Saves AI tokens by only re-processing changed routes.
+- **`generate`**: First run, config changed significantly, or user wants a full refresh.
+
+**CLI usage:**
+```bash
+# Auto-detect added/removed routes
+kodadocs update .
+
+# Force re-capture specific routes
+kodadocs update . --routes /dashboard,/settings
+
+# Override app URL
+kodadocs update . --url http://localhost:3001
+
+# Deploy after update
+kodadocs update . --deploy
+```
+
+**How it works:**
+1. Loads existing manifest
+2. Re-discovers current routes
+3. Diffs against previous routes (added/removed/forced)
+4. Prunes data for removed routes and orphaned articles
+5. Captures screenshots only for new/changed routes
+6. Annotates only new/changed screenshots
+7. Runs incremental AI enrichment — generates new articles or updates existing ones
+8. Rebuilds full VitePress output (cheap, ensures sidebar is correct)
+9. Optionally deploys
+
+**MCP workflow:**
+When orchestrating via MCP tools, check for an existing manifest before starting:
+1. Call `load_manifest` — if it returns data, ask the user if they want a full regeneration or an incremental update
+2. For incremental updates, only call `capture_screenshots` and `annotate_screenshots` for the changed routes
+3. Write only new/updated articles in Phase 4
+4. Always run Phase 5 (Output Assembly) to rebuild the complete site
 
 ## Quality Checklist
 

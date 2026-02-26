@@ -8,11 +8,11 @@ from typing import Optional
 
 def _slugify(title: str) -> str:
     """Stable, human-readable slug from article title via NFKD normalization."""
-    s = unicodedata.normalize('NFKD', title)
-    s = s.encode('ascii', 'ignore').decode('ascii')
+    s = unicodedata.normalize("NFKD", title)
+    s = s.encode("ascii", "ignore").decode("ascii")
     s = s.lower()
-    s = re.sub(r'[^a-z0-9]+', '-', s)
-    return s.strip('-') or 'article'
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-") or "article"
 
 
 def _unique_slug(title: str, seen: dict[str, int]) -> str:
@@ -20,18 +20,18 @@ def _unique_slug(title: str, seen: dict[str, int]) -> str:
     base = _slugify(title)
     count = seen.get(base, 0)
     seen[base] = count + 1
-    return base if count == 0 else f'{base}-{count}'
+    return base if count == 0 else f"{base}-{count}"
 
 
 def _extract_tagline(summary: str) -> str:
     """Extract first sentence from product summary, capped at ~120 chars."""
     if not summary:
         return "Help Center"
-    text = re.sub(r'^#\s+.*\n*', '', summary).strip()
-    match = re.match(r'([^.!?]+[.!?])', text)
+    text = re.sub(r"^#\s+.*\n*", "", summary).strip()
+    match = re.match(r"([^.!?]+[.!?])", text)
     sentence = match.group(1).strip() if match else text
     if len(sentence) > 120:
-        sentence = sentence[:117].rsplit(' ', 1)[0] + '...'
+        sentence = sentence[:117].rsplit(" ", 1)[0] + "..."
     return sentence
 
 
@@ -39,10 +39,10 @@ def _build_feature_cards(articles: list) -> str:
     """Build up to 3 VitePress feature cards from article titles + first sentences."""
     cards = []
     for article in articles[:3]:
-        title = article.get('title', '')
-        content = article.get('content', '') or article.get('body', '')
-        text = re.sub(r'^#[^\n]*\n*', '', content).strip()
-        match = re.match(r'([^.!?]+[.!?])', text)
+        title = article.get("title", "")
+        content = article.get("content", "") or article.get("body", "")
+        text = re.sub(r"^#[^\n]*\n*", "", content).strip()
+        match = re.match(r"([^.!?]+[.!?])", text)
         details = match.group(1).strip() if match else text[:100]
         if title and details:
             cards.append(f'  - title: "{title}"\n    details: "{details}"')
@@ -103,16 +103,20 @@ def assemble_vitepress_tool(
     cta_link = hero_cta_link or guide_link
 
     if feature_highlights:
-        features_yaml = "features:\n" + "\n".join(
-            f'  - title: "{f["title"]}"\n    details: "{f["details"]}"'
-            for f in feature_highlights[:3]
-        ) + "\n"
+        features_yaml = (
+            "features:\n"
+            + "\n".join(
+                f'  - title: "{f["title"]}"\n    details: "{f["details"]}"'
+                for f in feature_highlights[:3]
+            )
+            + "\n"
+        )
     else:
         features_yaml = _build_feature_cards(articles)
 
     summary_body = ""
     if show_product_summary and product_summary:
-        summary_body = re.sub(r'^#\s+.*\n*', '', product_summary).strip()
+        summary_body = re.sub(r"^#\s+.*\n*", "", product_summary).strip()
 
     index_content = f"""---
 layout: home
@@ -135,7 +139,7 @@ hero:
     if logo_path:
         src_logo = Path(logo_path)
         if src_logo.exists():
-            dest_name = re.sub(r'[^a-z0-9._-]', '-', src_logo.name.lower())
+            dest_name = re.sub(r"[^a-z0-9._-]", "-", src_logo.name.lower())
             shutil.copy(src_logo, assets_dir / dest_name)
             logo_config = f"    logo: '/assets/{dest_name}',\n"
 
@@ -195,8 +199,10 @@ export default defineConfig({{
         }
         (output_path / "package.json").write_text(json.dumps(pkg, indent=2))
 
-    return json.dumps({
-        "status": "ok",
-        "output_dir": str(output_path),
-        "articles_count": len(articles),
-    })
+    return json.dumps(
+        {
+            "status": "ok",
+            "output_dir": str(output_path),
+            "articles_count": len(articles),
+        }
+    )

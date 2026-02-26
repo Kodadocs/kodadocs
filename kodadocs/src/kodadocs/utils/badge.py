@@ -26,7 +26,9 @@ BADGE_CSS = """\
 }
 </style>"""
 
-BADGE_HTML = '<a class="kodadocs-badge" href="https://kodadocs.com">Powered by KodaDocs</a>'
+BADGE_HTML = (
+    '<a class="kodadocs-badge" href="https://kodadocs.com">Powered by KodaDocs</a>'
+)
 
 
 def inject_badge(dist_dir: Path) -> int:

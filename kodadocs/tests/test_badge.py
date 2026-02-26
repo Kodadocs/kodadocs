@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import pytest
 
-from kodadocs.utils.badge import inject_badge, BADGE_HTML, BADGE_CSS
+from kodadocs.utils.badge import inject_badge
 
 
 @pytest.fixture
@@ -37,9 +35,7 @@ class TestInjectBadge:
         # Add a second HTML file
         sub = tmp_path / "about"
         sub.mkdir()
-        (sub / "index.html").write_text(
-            "<html><head></head><body></body></html>"
-        )
+        (sub / "index.html").write_text("<html><head></head><body></body></html>")
         count = inject_badge(tmp_path)
         assert count == 2
 
