@@ -4,9 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-AI-generated help docs for your web app — in minutes, not weeks.
+**End-user ready help docs for your web app — generated in minutes, not written over weeks.**
 
-KodaDocs is an open-source Claude Code MCP tool. Install it, tell Claude "Generate docs for my app", and get a complete help center with annotated screenshots and AI-written articles. Free to self-host. $12/mo for hosted deploy to `yourapp.kodadocs.com`.
+Most doc tools produce developer-facing references. KodaDocs produces the kind of help center your customers actually use: annotated screenshots, step-by-step guides, Getting Started walkthroughs, FAQ, and troubleshooting — all written in plain language, styled with your branding, and ready to ship the moment it's generated.
+
+Install the MCP tool, tell Claude "Generate docs for my app", and get a complete, polished help center. No editing pass required. Free to self-host. $12/mo for hosted deploy to `yourapp.kodadocs.com`.
 
 ## Quick Start
 
@@ -38,16 +40,26 @@ Then tell Claude:
 
 > "Generate help docs for my app"
 
-Claude reads your code, captures screenshots, writes documentation, and assembles a VitePress help center — all through MCP tools.
+Claude reads your code, captures screenshots, writes user-facing documentation, and assembles a ready-to-ship help center — all through MCP tools. The output is end-user ready: your customers can start using it immediately.
 
-## What Claude Does (via MCP tools)
+## What You Get
+
+The output isn't a rough draft — it's a production help center your users can navigate on day one:
+
+- **Getting Started guide** that walks new users through setup and first actions
+- **Feature guides** with numbered, annotated screenshots showing exactly where to click
+- **FAQ and Troubleshooting** pages covering common questions and error states
+- **Full-text search**, responsive layout, and your brand colors baked in
+- **Deployable immediately** — no review cycle, no copy-editing, no formatting cleanup
+
+## How It Works (via MCP tools)
 
 | Phase | What happens |
 |-------|-------------|
 | **Discovery** | Detects framework, discovers routes from code |
 | **Capture** | Launches headless browser, authenticates, captures screenshots |
 | **Annotation** | Draws numbered callouts on UI elements |
-| **Doc Writing** | Claude writes all articles directly (Getting Started, Feature Guides, FAQ, Troubleshooting) |
+| **Doc Writing** | Claude writes end-user articles — plain language, task-oriented, with screenshot references |
 | **Assembly** | Assembles VitePress site with branding, search, and mobile layout |
 | **Deploy** | Deploys to Cloudflare, Vercel, Netlify, GitHub Pages, or kodadocs.com |
 
