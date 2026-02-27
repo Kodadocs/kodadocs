@@ -141,6 +141,15 @@ def init(
     ).split(",")
 
     brand_color = Prompt.ask("Primary brand color (hex)", default="#3e8fb0")
+
+    from kodadocs.themes.loader import list_themes
+    available_themes = list_themes()
+    theme_choices = ", ".join(t.name for t in available_themes)
+    theme_name = Prompt.ask(
+        f"Theme preset ({theme_choices})",
+        default="default",
+    )
+
     logo_path = Prompt.ask("Path to your logo image", default="public/logo.png")
 
     skip_ai = not Confirm.ask("Use AI for discovery and analysis?", default=True)
@@ -176,6 +185,7 @@ def init(
         project_path=path.absolute(),
         output_path=output.absolute(),
         brand_color=brand_color,
+        theme_name=theme_name,
         logo_path=Path(logo_path) if logo_path else None,
         ai_model=ai_model,
         skip_ai=skip_ai,
