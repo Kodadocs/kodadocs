@@ -1,5 +1,7 @@
 import json
+from unittest.mock import patch
 from kodadocs.mcp.tools.output import assemble_vitepress_tool
+from kodadocs.themes.loader import ThemePreset
 
 
 def test_assemble_creates_vitepress_structure(tmp_path):
@@ -295,17 +297,36 @@ def test_assemble_applies_theme_preset(tmp_path):
     screenshots_dir.mkdir()
     output_dir = tmp_path / "output"
 
-    result_json = assemble_vitepress_tool(
-        articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
-        screenshots_dir=str(screenshots_dir),
-        brand_color="#3e8fb0",
-        logo_path=None,
-        output_dir=str(output_dir),
-        project_name="TestApp",
-        product_summary="A test app.",
-        discovered_routes=["/"],
-        theme_name="professional",
+    mock_theme = ThemePreset(
+        name="professional",
+        display_name="Professional",
+        description="Clean corporate look",
+        colors={
+            "brand": {"light": "#2563eb", "dark": "#60a5fa"},
+            "brand_hover": {"light": "#1d4ed8", "dark": "#93bbfd"},
+            "brand_soft": {"light": "rgba(37,99,235,0.14)", "dark": "rgba(96,165,250,0.16)"},
+            "bg": {"light": "#ffffff", "dark": "#0f172a"},
+            "bg_alt": {"light": "#f8fafc", "dark": "#1e293b"},
+            "text": {"light": "#1e293b", "dark": "#e2e8f0"},
+            "text_muted": {"light": "#64748b", "dark": "#94a3b8"},
+        },
+        font="Inter, system-ui, sans-serif",
+        code_theme="github-dark",
     )
+
+    with patch("kodadocs.mcp.tools.output.load_theme", return_value=mock_theme):
+        result_json = assemble_vitepress_tool(
+            articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
+            screenshots_dir=str(screenshots_dir),
+            brand_color="#3e8fb0",
+            logo_path=None,
+            output_dir=str(output_dir),
+            project_name="TestApp",
+            product_summary="A test app.",
+            discovered_routes=["/"],
+            theme_name="professional",
+            license_key="kd_pro_test123",
+        )
 
     style_css = (output_dir / ".vitepress" / "theme" / "style.css").read_text()
     # Professional theme uses #2563eb, not the passed brand_color

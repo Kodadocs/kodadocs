@@ -144,9 +144,16 @@ def init(
 
     from kodadocs.themes.loader import list_themes
     available_themes = list_themes()
-    theme_choices = ", ".join(t.name for t in available_themes)
+    theme_labels = []
+    for t in available_themes:
+        label = t["name"]
+        if t.get("tier") == "pro":
+            label += " (Pro)"
+        theme_labels.append(label)
+    theme_choices_display = ", ".join(theme_labels)
+    theme_names = [t["name"] for t in available_themes]
     theme_name = Prompt.ask(
-        f"Theme preset ({theme_choices})",
+        f"Theme preset ({theme_choices_display})",
         default="default",
     )
 

@@ -68,6 +68,7 @@ def assemble_vitepress_tool(
     feature_highlights: Optional[list[dict]] = None,
     show_product_summary: bool = True,
     theme_name: Optional[str] = None,
+    license_key: Optional[str] = None,
 ) -> str:
     """Assemble a VitePress static site from articles and screenshots.
     Returns JSON with status and output path.
@@ -183,7 +184,7 @@ export default defineConfig({{
     # Generate theme CSS
     if theme_name and theme_name != "default":
         try:
-            theme = load_theme(theme_name)
+            theme = load_theme(theme_name, license_key=license_key)
             css_content = theme.to_css()
         except ValueError:
             # Fall back to brand_color if theme not found

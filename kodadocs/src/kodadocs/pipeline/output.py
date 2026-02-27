@@ -210,9 +210,11 @@ export default DefaultTheme
     brand_color = manifest.config.brand_color or "#3e8fb0"
     theme_name = getattr(manifest.config, "theme_name", "default")
 
+    license_key = getattr(manifest.config, "license_key", None)
+
     if theme_name and theme_name != "default":
         try:
-            theme = load_theme(theme_name)
+            theme = load_theme(theme_name, license_key=license_key)
             css_content = theme.to_css()
         except ValueError:
             css_content = f""":root {{
