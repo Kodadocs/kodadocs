@@ -68,8 +68,10 @@ The output isn't a rough draft — it's a production help center your users can 
 | Tool | Description |
 |------|-------------|
 | `detect_framework` | Auto-detect web framework from project files |
-| `capture_screenshots` | Headless browser capture with auth and validation |
-| `annotate_screenshots` | Pillow numbered callouts + PII blur |
+| `discover_routes` | Static analysis of routes, services, and metadata |
+| `analyze_codebase` | Tree-sitter parsing for code chunks, error patterns, data models |
+| `capture_screenshots` | Headless browser capture with auth and PII blur |
+| `annotate_screenshots` | Numbered callouts on UI elements via Pillow |
 | `assemble_vitepress` | Build complete VitePress site from articles + screenshots |
 | `deploy_site` | Deploy to hosting provider |
 | `save_manifest` | Persist pipeline state |
@@ -92,6 +94,8 @@ cp skill/kodadocs.md .claude/skills/kodadocs.md
 | Output | Local `./docs/` folder | Local + one-command deploy |
 | Hosting | Self-host (Vercel/Netlify/etc.) | `yourapp.kodadocs.com` |
 | Custom domain | No | `help.yourapp.com` via CNAME |
+| Themes | Default theme | 6 premium themes + custom brand colors, fonts, dark mode |
+| Analytics | No | Search queries, article feedback, page views |
 | Branding | "Powered by KodaDocs" badge | Badge removable |
 
 Users bring their own Anthropic API key — generation is never gated.
