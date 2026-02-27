@@ -225,6 +225,41 @@ def test_tagline_bullet_list():
     assert result == "A rental management app."
 
 
+def test_output_step_applies_theme_preset(tmp_path):
+    """Pipeline output should use theme preset when config has theme_name."""
+    from kodadocs.pipeline.output import output_step
+    from kodadocs.themes.loader import ThemePreset
+
+    manifest = _make_manifest(tmp_path)
+    manifest.config.theme_name = "professional"
+
+    mock_theme = ThemePreset(
+        name="professional",
+        display_name="Professional",
+        description="Clean corporate look",
+        colors={
+            "brand": {"light": "#2563eb", "dark": "#60a5fa"},
+            "brand_hover": {"light": "#1d4ed8", "dark": "#93bbfd"},
+            "brand_soft": {"light": "rgba(37,99,235,0.14)", "dark": "rgba(96,165,250,0.16)"},
+            "bg": {"light": "#ffffff", "dark": "#0f172a"},
+            "bg_alt": {"light": "#f8fafc", "dark": "#1e293b"},
+            "text": {"light": "#1e293b", "dark": "#e2e8f0"},
+            "text_muted": {"light": "#64748b", "dark": "#94a3b8"},
+        },
+        font="Inter, system-ui, sans-serif",
+        code_theme="github-dark",
+    )
+
+    with patch("subprocess.run"), patch(
+        "kodadocs.pipeline.output.load_theme", return_value=mock_theme
+    ):
+        output_step(manifest)
+
+    style_css = (tmp_path / "docs" / ".vitepress" / "theme" / "style.css").read_text()
+    assert "#2563eb" in style_css
+    assert ".dark" in style_css
+
+
 def test_tagline_quote_escaping():
     from kodadocs.pipeline.output import _extract_tagline
 

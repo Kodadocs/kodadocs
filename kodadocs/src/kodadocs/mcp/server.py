@@ -69,9 +69,13 @@ def assemble_vitepress(
     hero_cta_link: str | None = None,
     feature_highlights: list[dict] | None = None,
     show_product_summary: bool = True,
+    theme_name: str | None = None,
+    license_key: str | None = None,
 ) -> str:
     """Assemble a VitePress static site from generated articles and screenshots.
     Creates index page, article markdown files, VitePress config, theme with brand color, and package.json.
+    Pass theme_name to use a built-in theme preset (default, professional, minimal, playful, dark-modern, docs-classic).
+    Pro themes require a valid license_key.
     """
     return assemble_vitepress_tool(
         articles,
@@ -87,6 +91,8 @@ def assemble_vitepress(
         hero_cta_link=hero_cta_link,
         feature_highlights=feature_highlights,
         show_product_summary=show_product_summary,
+        theme_name=theme_name,
+        license_key=license_key,
     )
 
 

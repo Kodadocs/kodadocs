@@ -6,6 +6,7 @@ import unicodedata
 from pathlib import Path
 from rich.console import Console
 from ..models import RunManifest
+from ..themes.loader import load_theme
 
 
 def _slugify(title: str) -> str:
@@ -207,16 +208,31 @@ export default DefaultTheme
 """)
 
     brand_color = manifest.config.brand_color or "#3e8fb0"
-    with open(theme_dir / "style.css", "w") as f:
-        f.write(f"""/**
- * Customizing the brand color
- */
-:root {{
+    theme_name = getattr(manifest.config, "theme_name", "default")
+
+    license_key = getattr(manifest.config, "license_key", None)
+
+    if theme_name and theme_name != "default":
+        try:
+            theme = load_theme(theme_name, license_key=license_key)
+            css_content = theme.to_css()
+        except ValueError:
+            css_content = f""":root {{
   --vp-c-brand-1: {brand_color};
-  --vp-c-brand-2: {brand_color}; /* Darker/Lighter variant ideally */
+  --vp-c-brand-2: {brand_color};
   --vp-c-brand-3: {brand_color};
 }}
-""")
+"""
+    else:
+        css_content = f""":root {{
+  --vp-c-brand-1: {brand_color};
+  --vp-c-brand-2: {brand_color};
+  --vp-c-brand-3: {brand_color};
+}}
+"""
+
+    with open(theme_dir / "style.css", "w") as f:
+        f.write(css_content)
 
     # 6. Generate package.json if needed
     if not (output_path / "package.json").exists():

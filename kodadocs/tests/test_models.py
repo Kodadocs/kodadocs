@@ -236,3 +236,23 @@ def test_run_manifest_site_slug_roundtrip(tmp_path):
     json_str = manifest.model_dump_json()
     restored = RunManifest.model_validate_json(json_str)
     assert restored.site_slug == "myapp"
+
+
+# ── Theme name field ──────────────────────────────────────────────────
+
+
+def test_session_config_has_theme_name():
+    config = SessionConfig(
+        app_url="http://localhost:3000",
+        project_path=Path("."),
+        theme_name="professional",
+    )
+    assert config.theme_name == "professional"
+
+
+def test_session_config_theme_name_defaults_to_default():
+    config = SessionConfig(
+        app_url="http://localhost:3000",
+        project_path=Path("."),
+    )
+    assert config.theme_name == "default"

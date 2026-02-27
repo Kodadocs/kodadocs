@@ -47,6 +47,7 @@ class SessionConfig(BaseModel):
     project_path: Path
     output_path: Path = Path("./docs")
     brand_color: Optional[str] = "#3e8fb0"
+    theme_name: str = "default"
     logo_path: Optional[Path] = None
     ai_model: str = "claude-sonnet-4-6"
     generation_model: str = "claude-haiku-4-5-20251001"
