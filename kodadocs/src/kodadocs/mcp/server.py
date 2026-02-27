@@ -5,6 +5,8 @@ from kodadocs.mcp.tools.annotation import annotate_screenshots_tool
 from kodadocs.mcp.tools.output import assemble_vitepress_tool
 from kodadocs.mcp.tools.manifest import save_manifest_tool, load_manifest_tool
 from kodadocs.mcp.tools.deploy import deploy_site_tool
+from kodadocs.mcp.tools.discovery import discover_routes_tool
+from kodadocs.mcp.tools.analysis import analyze_codebase_tool
 
 mcp = FastMCP(name="kodadocs")
 
@@ -129,6 +131,34 @@ def deploy_site(
         license_key=license_key,
         site_slug=site_slug,
     )
+
+
+@mcp.tool
+def discover_routes(
+    project_path: str,
+    framework: str | None = None,
+    app_url: str | None = None,
+) -> str:
+    """Discover application routes, services, and metadata via static analysis.
+    Returns JSON with discovered_routes, route_metadata, detected_services,
+    ui_components, and deployment_platform. Supports Next.js, SvelteKit,
+    Nuxt, React Router, and WordPress. Pass app_url to enable Playwright
+    crawler fallback when static analysis finds few routes.
+    """
+    return discover_routes_tool(project_path, framework=framework, app_url=app_url)
+
+
+@mcp.tool
+def analyze_codebase(
+    project_path: str,
+    discovered_routes: list[str] | None = None,
+) -> str:
+    """Analyze codebase structure using tree-sitter parsing.
+    Extracts code chunks (functions, classes), error patterns, and data models
+    (Prisma, Drizzle). No AI calls — fully deterministic. Returns JSON with
+    code_chunks, error_patterns, data_models, and file counts.
+    """
+    return analyze_codebase_tool(project_path, discovered_routes=discovered_routes)
 
 
 def run_server():
