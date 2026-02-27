@@ -43,38 +43,43 @@ Execute these phases in order. After each phase, call the `save_manifest` MCP to
 
 ### Phase 1: Discovery
 
-Analyze the codebase to discover routes and understand the application structure.
+Call the `discover_routes` MCP tool to discover routes and analyze the application structure.
 
-1. Call `detect_framework` MCP tool to identify the framework
-2. Based on the framework, use Read/Grep/Glob to discover routes:
-   - **Next.js**: Glob for `**/app/**/page.tsx` and `**/pages/**/*.tsx`
-   - **React**: Grep for `<Route path=` and `createBrowserRouter`
-   - **SvelteKit**: Glob for `**/src/routes/**/+page.svelte`
-   - **Nuxt**: Glob for `**/pages/**/*.vue`
-   - **Django**: Grep for `urlpatterns` and `path(` in urls.py files
-   - **Other**: Grep for route definitions in common patterns
-3. For each route, note if it's dynamic (contains `[param]` or `:param`)
-4. Check for middleware/auth guards to classify routes as public/protected
-5. Scan `package.json` or equivalent for known services (Supabase, Stripe, Clerk, etc.)
+1. Call `discover_routes` MCP tool with:
+   - `project_path`: The absolute path to the project directory
+   - `framework`: (optional) Override framework auto-detection if you know the framework
+   - `app_url`: (optional) The app URL if it's running — enables Playwright crawler fallback when static analysis finds few routes
+2. From the response, extract:
+   - `discovered_routes` — all page routes found
+   - `route_metadata` — dynamic/static classification, public/protected visibility
+   - `detected_services` — Stripe, Supabase, Clerk, etc.
+   - `ui_components` — shadcn/ui components detected
+   - `deployment_platform` — Vercel, Cloudflare, Netlify, etc.
+   - `nav_links` — navigation links from layouts (Next.js only)
+3. For dynamic routes (marked `dynamic: true` in metadata), note them but exclude from screenshot capture
 
-**Output:** Save discovered_routes, route_metadata, detected_services via `save_manifest`.
+**Output:** Save all discovery data via `save_manifest`.
 
 ### Phase 2: Code Analysis
 
-Read the source code to understand what the application does.
+Call the `analyze_codebase` MCP tool to extract code structure, then write the product summary yourself.
 
-1. For each discovered route, Read the page/component file
-2. Produce a `product_summary` (2-3 paragraphs):
+1. Call `analyze_codebase` MCP tool with:
+   - `project_path`: The absolute path to the project directory
+   - `discovered_routes`: (optional) The routes from Phase 1, for context
+2. From the response, extract:
+   - `code_chunks` — function and class definitions (tree-sitter parsed)
+   - `error_patterns` — error messages from throw/raise statements
+   - `data_models` — Prisma models, Drizzle tables
+3. Using the code chunks, discovered routes, and detected services, write a `product_summary` (2-3 paragraphs):
    - What the application does, written for end users
    - Key features and capabilities
    - NO code references, NO technical implementation details
-3. Produce a `doc_outline` — the help center structure:
+4. Produce a `doc_outline` — the help center structure:
    - Getting Started guide
    - Feature guides (one per major feature area)
-   - FAQ section
+   - FAQ section (seeded from error_patterns)
    - Troubleshooting section
-4. Extract error patterns: Grep for `throw new Error`, `raise.*Error`, `console.error`, validation messages
-5. Detect data models: Read Prisma schema, Drizzle definitions, or equivalent
 
 **Output:** Save product_summary, doc_outline, error_patterns, data_models via `save_manifest`.
 
