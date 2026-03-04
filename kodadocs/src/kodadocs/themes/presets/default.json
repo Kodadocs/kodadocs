@@ -1,0 +1,16 @@
+{
+  "name": "default",
+  "display_name": "Default",
+  "description": "The standard KodaDocs look with teal accents",
+  "colors": {
+    "brand": { "light": "#3e8fb0", "dark": "#5da3c3" },
+    "brand_hover": { "light": "#357a99", "dark": "#7db8d4" },
+    "brand_soft": { "light": "rgba(62,143,176,0.14)", "dark": "rgba(93,163,195,0.16)" },
+    "bg": { "light": "#ffffff", "dark": "#1b1b1f" },
+    "bg_alt": { "light": "#f6f6f7", "dark": "#161618" },
+    "text": { "light": "#213547", "dark": "rgba(255,255,245,.86)" },
+    "text_muted": { "light": "#596673", "dark": "rgba(235,235,245,.6)" }
+  },
+  "font": "Inter, system-ui, sans-serif",
+  "code_theme": "github-dark"
+}
