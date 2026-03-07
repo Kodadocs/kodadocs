@@ -8,15 +8,125 @@ from ..models import RunManifest
 from rich.console import Console
 
 # Token limits for AI calls
-STRUCTURE_MAX_TOKENS = 1500
-CONTENT_MAX_TOKENS = 8000
+STRUCTURE_MAX_TOKENS = 2500
+CONTENT_MAX_TOKENS = 6000
+
+SYSTEM_PROMPT = """You are DocuCraft, an expert technical documentation writer and product marketer.
+
+You write help center articles for software products that are:
+- Task-oriented: every article helps the user accomplish something specific
+- Scannable: short paragraphs, clear headings, numbered steps for procedures
+- Precise: reference exact UI elements by name, never use vague language
+- Confident: authoritative tone without being condescending
+
+Your output quality standards:
+- H1 for the article title (one per article)
+- H2 for major sections, H3 for subsections
+- Every procedure uses numbered steps (1. 2. 3.)
+- Screenshots are embedded right before or after the step they illustrate
+- When annotated screenshots have numbered callouts, reference them: "Click **Save** [3]"
+- Include a brief overview paragraph (2-3 sentences) after the H1 explaining what this article covers and why it matters
+- End complex articles with a "Next Steps" section linking to related articles
+
+NEVER use these vague phrases — always replace with specific UI element names:
+- "Click the button" → "Click **Save Changes**"
+- "Fill in the field" → "Enter your email in the **Email** field"
+- "Navigate to the page" → "Open **Settings > Billing**"
+- "Simply click" / "Just click" → state what to click
+- "As shown in the image" → describe what the image shows
+- "Enter your information" → name the specific fields
+- "Go to the settings" → "Open **Settings** from the sidebar"
+- "Follow the steps" → list the actual steps
+- "Select the appropriate" → name the specific option
+- "Complete the form" → list the fields to fill
+- "Here you can" / "This page allows you to" → state what the user will do
+- "Users can" → "You can" (direct address)
+
+When you detect services (Stripe, Clerk, Supabase, etc.), incorporate product-specific guidance that helps users understand how those integrations work in this app."""
+
+BANNED_PHRASES = [
+    "click the button",
+    "fill in the field",
+    "navigate to the page",
+    "simply click",
+    "just click",
+    "as shown in the image",
+    "enter your information",
+    "go to the settings",
+    "follow the steps",
+    "select the appropriate",
+    "complete the form",
+    "here you can",
+    "this page allows you to",
+    "users can then",
+    "the system will",
+    "you will see a",
+    "as you can see",
+    "it should be noted",
+    "it is important to",
+    "please note that",
+]
+
+
+def _check_banned_phrases(text: str) -> list:
+    return [phrase for phrase in BANNED_PHRASES if phrase.lower() in text.lower()]
+
+
+def _parse_json_response(text: str) -> dict | None:
+    """Parse JSON from AI response, handling code blocks and raw JSON."""
+    # Try code block first
+    code_block = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+    if code_block:
+        try:
+            return json.loads(code_block.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Try finding a JSON object — use a balanced brace approach
+    # instead of greedy regex to avoid matching nested issues
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escape_next = False
+    end = start
+
+    for i in range(start, len(text)):
+        c = text[i]
+        if escape_next:
+            escape_next = False
+            continue
+        if c == "\\":
+            escape_next = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
+    if depth == 0 and end > start:
+        try:
+            return json.loads(text[start:end])
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 def enrichment_step(manifest: RunManifest):
     console = Console()
     console.print("Running enrichment step...")
 
-    # Check if AI is disabled
     if manifest.config.skip_ai:
         return
 
@@ -25,19 +135,13 @@ def enrichment_step(manifest: RunManifest):
         return
 
     client = anthropic.Anthropic(api_key=api_key)
-    understanding_model = manifest.config.ai_model  # Sonnet for structure/understanding
-    generation_model = manifest.config.generation_model  # Haiku for content generation
+    understanding_model = manifest.config.ai_model
+    generation_model = manifest.config.generation_model
 
-    # Model pricing (per million tokens)
     MODEL_PRICING = {
         "claude-sonnet-4-6": {"input": 3.0, "output": 15.0},
         "claude-haiku-4-5-20251001": {"input": 1.0, "output": 5.0},
     }
-
-    # 1. Generate Article Structure
-    console.print(
-        f"Generating documentation structure with [cyan]{understanding_model}[/cyan]..."
-    )
 
     def update_cost(usage, model_id):
         pricing = MODEL_PRICING.get(model_id, {"input": 3.0, "output": 15.0})
@@ -46,28 +150,16 @@ def enrichment_step(manifest: RunManifest):
         if "Enrichment" in manifest.steps:
             manifest.steps["Enrichment"].cost_estimate += in_cost + out_cost
 
-    BANNED_PHRASES = [
-        "Click the button",
-        "Fill in the field",
-        "Navigate to the page",
-        "Simply click",
-        "Just click",
-        "As shown in the image",
-        "Enter your information",
-        "Go to the settings",
-        "Follow the steps",
-        "Select the appropriate",
-        "Complete the form",
-    ]
-
-    def _check_banned_phrases(text: str) -> list:
-        return [phrase for phrase in BANNED_PHRASES if phrase.lower() in text.lower()]
+    # 1. Generate Article Structure
+    console.print(
+        f"Generating documentation structure with [cyan]{understanding_model}[/cyan]..."
+    )
 
     routes_list = manifest.discovered_routes
     screenshots_map = manifest.screenshots
     error_patterns = manifest.error_patterns or []
 
-    # Build enriched context from detected services, components, and models
+    # Build enriched context
     route_meta = manifest.route_metadata or {}
     public_routes = [
         r for r, m in route_meta.items() if m.get("visibility") == "public"
@@ -78,10 +170,9 @@ def enrichment_step(manifest: RunManifest):
     dynamic_routes = [r for r, m in route_meta.items() if m.get("dynamic")]
 
     service_hints = []
-    if (
-        "supabase" in manifest.detected_services
-        or "clerk" in manifest.detected_services
-        or "nextauth" in manifest.detected_services
+    if any(
+        s in manifest.detected_services
+        for s in ("supabase", "clerk", "nextauth", "betterauth")
     ):
         service_hints.append(
             '- Include an "Account Management" article covering sign-up, login, password reset, and profile settings'
@@ -102,56 +193,51 @@ def enrichment_step(manifest: RunManifest):
         else "No specific service-based article suggestions."
     )
 
-    structure_prompt = f"""
-    You are a technical writer for a software product.
-    Based on the following product summary and discovered routes, create a documentation plan.
+    structure_prompt = f"""Based on the following product context, create a documentation plan.
 
-    Product Summary: {manifest.product_summary}
-    Routes Discovered: {", ".join(routes_list)}
-    Screenshots Available for Routes: {", ".join(screenshots_map.keys())}
-    Error Patterns Detected: {len(error_patterns)}
-    Detected Services: {", ".join(manifest.detected_services) if manifest.detected_services else "None"}
-    UI Components: {len(manifest.ui_components)} shadcn/ui components detected
-    Data Models: {", ".join(manifest.data_models) if manifest.data_models else "None"}
-    Route Classification: {len(public_routes)} public, {len(protected_routes)} protected, {len(dynamic_routes)} dynamic
+Product Summary: {manifest.product_summary}
+Routes Discovered: {", ".join(routes_list)}
+Screenshots Available for Routes: {", ".join(screenshots_map.keys())}
+Error Patterns Detected: {len(error_patterns)}
+Detected Services: {", ".join(manifest.detected_services) if manifest.detected_services else "None"}
+UI Components: {len(manifest.ui_components)} shadcn/ui components detected
+Data Models: {", ".join(manifest.data_models) if manifest.data_models else "None"}
+Route Classification: {len(public_routes)} public, {len(protected_routes)} protected, {len(dynamic_routes)} dynamic
 
-    Service-Aware Article Suggestions:
-    {service_hints_text}
+Service-Aware Article Suggestions:
+{service_hints_text}
 
-    Return a JSON object with a single key "articles", which is a list of objects.
-    Each object must have:
-    - "title": Title of the article (e.g., "Getting Started", "Dashboard Guide", "Troubleshooting")
-    - "description": Brief description of what this article covers.
-    - "related_routes": List of routes relevant to this article.
-    - "complexity": "Simple" or "Complex" (based on inferred feature depth).
+Return a JSON object with a single key "articles", which is a list of objects.
+Each object must have:
+- "title": Title of the article (e.g., "Getting Started", "Dashboard Guide", "Troubleshooting")
+- "description": Brief description of what this article covers.
+- "related_routes": List of routes relevant to this article.
+- "complexity": "Simple" or "Complex" (based on inferred feature depth).
+- "group": Category name for sidebar grouping (e.g., "Getting Started", "Features", "Reference").
 
-    Include at least 3 articles:
-    1. Getting Started / Overview
-    2. Feature Guides (one or more based on routes and detected services)
-    3. Troubleshooting / FAQ (if error patterns exist)
+Include at least 3 articles:
+1. Getting Started / Overview
+2. Feature Guides (one or more based on routes and detected services)
+3. Troubleshooting / FAQ (if error patterns exist)
 
-    Response format: JSON only. No markdown formatting.
-    """
+Response format: JSON only. No markdown formatting."""
 
     articles_plan = []
     try:
         response = client.messages.create(
             model=understanding_model,
             max_tokens=STRUCTURE_MAX_TOKENS,
+            system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": structure_prompt}],
         )
         update_cost(response.usage, understanding_model)
-        content_text = response.content[0].text.strip()
 
-        # Robust JSON extraction
-        json_match = re.search(r"\{.*\}", content_text, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(0)
-            structure = json.loads(json_str)
-            articles_plan = structure.get("articles", [])
+        parsed = _parse_json_response(response.content[0].text.strip())
+        if parsed:
+            articles_plan = parsed.get("articles", [])
         else:
             console.print(
-                "[yellow]Warning: Could not find JSON in AI response for structure.[/yellow]"
+                "[yellow]Warning: Could not parse JSON in AI response for structure.[/yellow]"
             )
             articles_plan = [
                 {
@@ -159,9 +245,9 @@ def enrichment_step(manifest: RunManifest):
                     "description": "Overview of the app",
                     "related_routes": ["/"],
                     "complexity": "Simple",
+                    "group": "Getting Started",
                 }
             ]
-
     except Exception as e:
         console.print(f"[red]Structure generation failed: {e}[/red]")
         articles_plan = [
@@ -170,6 +256,7 @@ def enrichment_step(manifest: RunManifest):
                 "description": "Overview of the app",
                 "related_routes": ["/"],
                 "complexity": "Simple",
+                "group": "Getting Started",
             }
         ]
 
@@ -184,12 +271,10 @@ def enrichment_step(manifest: RunManifest):
     for plan in articles_plan:
         console.print(f"  - Writing '[cyan]{plan['title']}[/cyan]'...")
 
-        # Prepare context specific to this article
         relevant_screenshots = {}
         relevant_elements = {}
 
         for route in plan.get("related_routes", []):
-            # Prioritize annotated screenshots
             annotated_key = route + "_annotated"
             if annotated_key in screenshots_map:
                 relevant_screenshots[route] = screenshots_map[annotated_key]
@@ -199,7 +284,6 @@ def enrichment_step(manifest: RunManifest):
                 relevant_screenshots[route] = screenshots_map[route]
 
         if not relevant_screenshots and "Getting Started" in plan["title"]:
-            # Fallback to index if no routes matched
             if "/_annotated" in screenshots_map:
                 relevant_screenshots["/"] = screenshots_map["/_annotated"]
                 relevant_elements["/"] = annotated_elements.get("/")
@@ -207,48 +291,46 @@ def enrichment_step(manifest: RunManifest):
                 relevant_screenshots["/"] = screenshots_map["/"]
 
         complexity_instruction = (
-            "Use simple, direct language."
+            "Use simple, direct language. Keep steps concise."
             if plan.get("complexity") == "Simple"
-            else "Use detailed, technical language appropriate for power users."
+            else "Use detailed, technical language appropriate for power users. Include edge cases and advanced options."
         )
 
-        # Build per-article route context
         article_route_meta = {
             r: route_meta.get(r, {})
             for r in plan.get("related_routes", [])
             if r in route_meta
         }
 
-        article_prompt = f"""
-        Write the documentation article: "{plan["title"]}".
-        Description: {plan["description"]}
-        Tone Instruction: {complexity_instruction}
+        article_prompt = f"""Write the documentation article: "{plan["title"]}".
+Description: {plan["description"]}
+Tone: {complexity_instruction}
 
-        Context:
-        - Product Summary: {manifest.product_summary}
-        - Relevant Routes: {", ".join(plan.get("related_routes", []))}
-        - Route Details: {json.dumps(article_route_meta)}
-        - Available Screenshots (some are annotated with numbered callouts): {json.dumps(relevant_screenshots)}
-        - Numbered Callout Legend (for the annotated screenshots):
-        {json.dumps(relevant_elements, indent=2)}
-        - Error Patterns: {json.dumps(error_patterns[:20])}
-        - Detected Services: {", ".join(manifest.detected_services) if manifest.detected_services else "None"}
-        - Data Models: {", ".join(manifest.data_models) if manifest.data_models else "None"}
+Context:
+- Product Summary: {manifest.product_summary}
+- Relevant Routes: {", ".join(plan.get("related_routes", []))}
+- Route Details: {json.dumps(article_route_meta)}
+- Available Screenshots: {json.dumps(relevant_screenshots)}
+- Numbered Callout Legend (for annotated screenshots):
+{json.dumps(relevant_elements, indent=2)}
+- Error Patterns: {json.dumps(error_patterns[:20])}
+- Detected Services: {", ".join(manifest.detected_services) if manifest.detected_services else "None"}
+- Data Models: {", ".join(manifest.data_models) if manifest.data_models else "None"}
 
-        IMPORTANT:
-        1. When referencing UI elements from annotated screenshots, use their callout number in brackets, e.g., "Click the Save button [3]".
-        2. Use the "Available Screenshots" paths exactly as provided for image embedding.
-        3. If no annotated screenshot exists for a route, describe the UI elements by name.
-        4. If services like Supabase, Clerk, or Stripe are detected, incorporate relevant user-facing guidance (e.g., how auth works, how to manage billing).
-        5. Reference data models by name when explaining features that manage those entities.
+Article structure requirements:
+1. H1 title, then 2-3 sentence overview paragraph
+2. H2 sections for each major topic
+3. Numbered steps for any procedure
+4. Embed screenshots using exact paths from "Available Screenshots": `![Description](path)`
+5. Reference annotated callout numbers in brackets: "Click **Save** [3]"
+6. If services are detected, explain how they work in this app
+7. End with "Next Steps" if there are related topics
 
-        Return a JSON object with:
-        - "content": The full Markdown content. Use H1 for title. Embed matching screenshots with `![Alt](path)`.
-        - "confidence_score": Float 0.0-1.0.
-        - "reasoning": Brief explanation.
+Return a JSON object with:
+- "content": The full Markdown article content.
+- "confidence_score": Float 0.0-1.0 indicating your confidence in the article quality.
 
-        Response format: JSON only.
-        """
+Response format: JSON only."""
 
         try:
             # Build content blocks with screenshot images for Vision
@@ -287,60 +369,59 @@ def enrichment_step(manifest: RunManifest):
             art_response = client.messages.create(
                 model=generation_model,
                 max_tokens=CONTENT_MAX_TOKENS,
+                system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": content_blocks}],
             )
             update_cost(art_response.usage, generation_model)
             art_text = art_response.content[0].text.strip()
 
-            # 1. Try to extract JSON from code blocks first
             content = None
             score = 0.5
 
-            json_code_block = re.search(r"```json\s*(.*?)\s*```", art_text, re.DOTALL)
-            json_str = json_code_block.group(1) if json_code_block else None
+            parsed = _parse_json_response(art_text)
+            if parsed:
+                content = parsed.get("content")
+                score = parsed.get("confidence_score", 0.5)
 
-            if not json_str:
-                # 2. Try to find raw { } block
-                json_match = re.search(r"\{.*\}", art_text, re.DOTALL)
-                json_str = json_match.group(0) if json_match else None
-
-            if json_str:
-                try:
-                    art_data = json.loads(json_str)
-                    content = art_data.get("content")
-                    score = art_data.get("confidence_score", 0.5)
-                except Exception as json_err:
-                    console.print(
-                        f"[yellow]Warning: JSON parsing failed for {plan['title']}: {json_err}[/yellow]"
-                    )
-                    # JSON was invalid, fall through to raw text
-                    pass
-
-            # 3. If we couldn't get content from JSON, use the raw text but strip JSON wrappers
             if not content:
-                # If the AI ignored the JSON instruction and gave us raw markdown
+                # AI returned raw markdown instead of JSON — use it directly
                 content = art_text
-                # Remove any JSON-like keys if it accidentally returned a mix
                 content = re.sub(r'^{\s*"content":\s*"', "", content)
                 content = re.sub(
                     r'"\s*,\s*"confidence_score":.*}$', "", content, flags=re.DOTALL
                 )
 
-            # Banned-phrase filter with one retry
+            # Banned-phrase filter with one retry (retry includes images)
             found_banned = _check_banned_phrases(content)
             if found_banned:
                 console.print(
                     f"  [yellow]Banned phrases found: {found_banned}. Retrying...[/yellow]"
                 )
-                retry_prompt = f"Rewrite the following article, replacing these vague phrases with specific UI element names and actions:\nBanned phrases found: {', '.join(found_banned)}\n\nOriginal article:\n{content}"
+                retry_blocks = list(content_blocks[:-1])  # Keep images
+                retry_blocks.append({
+                    "type": "text",
+                    "text": (
+                        f"Rewrite the following article. Replace these vague phrases "
+                        f"with specific UI element names and actions from the screenshots:\n"
+                        f"Banned phrases found: {', '.join(found_banned)}\n\n"
+                        f"Original article:\n{content}"
+                    ),
+                })
                 try:
                     retry_resp = client.messages.create(
                         model=generation_model,
                         max_tokens=CONTENT_MAX_TOKENS,
-                        messages=[{"role": "user", "content": retry_prompt}],
+                        system=SYSTEM_PROMPT,
+                        messages=[{"role": "user", "content": retry_blocks}],
                     )
                     update_cost(retry_resp.usage, generation_model)
-                    content = retry_resp.content[0].text.strip()
+                    retry_text = retry_resp.content[0].text.strip()
+                    # Try to parse as JSON first
+                    retry_parsed = _parse_json_response(retry_text)
+                    if retry_parsed and retry_parsed.get("content"):
+                        content = retry_parsed["content"]
+                    else:
+                        content = retry_text
                     still_banned = _check_banned_phrases(content)
                     if still_banned:
                         console.print(
@@ -354,7 +435,12 @@ def enrichment_step(manifest: RunManifest):
                 content += f"\n\n::: tip Confidence Score: {score}\nThis article was generated with lower confidence and may require human review.\n:::\n"
 
             generated_articles.append(
-                {"title": plan["title"], "content": content, "confidence_score": score}
+                {
+                    "title": plan["title"],
+                    "content": content,
+                    "confidence_score": score,
+                    "group": plan.get("group"),
+                }
             )
 
         except Exception as e:
@@ -363,12 +449,13 @@ def enrichment_step(manifest: RunManifest):
                 {
                     "title": plan["title"],
                     "content": f"# {plan['title']}\n\nContent generation failed due to error: {e}",
+                    "group": plan.get("group"),
                 }
             )
 
     manifest.articles = generated_articles
 
-    # Populate article → route mapping for incremental updates
+    # Populate article -> route mapping for incremental updates
     manifest.article_route_map = {
         plan["title"]: plan.get("related_routes", []) for plan in articles_plan
     }

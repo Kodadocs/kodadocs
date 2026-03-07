@@ -174,27 +174,27 @@ def test_output_enables_local_search(tmp_path):
 
 
 def test_tagline_simple_sentence():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     assert _extract_tagline("A rental management app.") == "A rental management app."
 
 
 def test_tagline_markdown_heading():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     result = _extract_tagline("# Product Overview\nA rental management app.")
     assert result == "A rental management app."
 
 
 def test_tagline_multi_level_headings():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     result = _extract_tagline("## Product\n### Overview\nA rental management app.")
     assert result == "A rental management app."
 
 
 def test_tagline_json_blob():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     result = _extract_tagline(
         'A rental management app.\n\n```json\n{"articles": [{"title": "Getting Started"}]}\n```'
@@ -203,14 +203,14 @@ def test_tagline_json_blob():
 
 
 def test_tagline_empty_input():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     assert _extract_tagline("") == "Help Center"
     assert _extract_tagline(None) == "Help Center"
 
 
 def test_tagline_long_truncation():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     long_text = "A " + "very " * 30 + "long description of the product."
     result = _extract_tagline(long_text)
@@ -219,7 +219,7 @@ def test_tagline_long_truncation():
 
 
 def test_tagline_bullet_list():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     result = _extract_tagline("- A rental management app.")
     assert result == "A rental management app."
@@ -250,8 +250,10 @@ def test_output_step_applies_theme_preset(tmp_path):
         code_theme="github-dark",
     )
 
-    with patch("subprocess.run"), patch(
-        "kodadocs.pipeline.output.load_theme", return_value=mock_theme
+    with (
+        patch("subprocess.run"),
+        patch("kodadocs.utils.vitepress.load_theme", return_value=mock_theme),
+        patch("kodadocs.utils.vitepress.is_pro", return_value=True),
     ):
         output_step(manifest)
 
@@ -261,7 +263,7 @@ def test_output_step_applies_theme_preset(tmp_path):
 
 
 def test_tagline_quote_escaping():
-    from kodadocs.pipeline.output import _extract_tagline
+    from kodadocs.utils.vitepress import extract_tagline as _extract_tagline
 
     result = _extract_tagline('A "modern" rental app.')
     assert '\\"' in result

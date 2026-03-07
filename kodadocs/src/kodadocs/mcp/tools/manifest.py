@@ -2,9 +2,24 @@ import json
 from pathlib import Path
 
 
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override into base. Lists and scalars are replaced."""
+    merged = base.copy()
+    for key, value in override.items():
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def save_manifest_tool(manifest: dict, project_path: str) -> str:
     """Save a RunManifest dict to .kodadocs/run_manifest.json.
-    Accepts a partial manifest dict — merges with existing if present.
+    Accepts a partial manifest dict — deep merges with existing if present.
     """
     path = Path(project_path)
     kodadocs_dir = path / ".kodadocs"
@@ -15,8 +30,8 @@ def save_manifest_tool(manifest: dict, project_path: str) -> str:
     if manifest_path.exists():
         existing = json.loads(manifest_path.read_text())
 
-    existing.update(manifest)
-    manifest_path.write_text(json.dumps(existing, indent=2, default=str))
+    merged = _deep_merge(existing, manifest)
+    manifest_path.write_text(json.dumps(merged, indent=2, default=str))
 
     return json.dumps({"status": "ok", "path": str(manifest_path)})
 

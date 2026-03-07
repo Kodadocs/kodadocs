@@ -1,6 +1,5 @@
 import json
 import time
-from http.client import HTTPResponse
 from io import BytesIO
 from unittest.mock import patch, MagicMock
 import urllib.error
@@ -69,30 +68,38 @@ def test_load_default_always_local():
     assert theme.font is not None
 
 
-def test_load_paid_requires_license_key():
-    """Loading a paid theme without a license key raises ValueError."""
-    with pytest.raises(ValueError, match="Pro theme"):
-        load_theme("professional")
+def test_load_pro_theme_requires_pro_kit():
+    """Loading a Pro theme without Pro Kit falls back to default."""
+    with patch("kodadocs.utils.license.has_local_pro_kit", return_value=False):
+        theme = load_theme("professional")
+    assert isinstance(theme, ThemePreset)
+    assert theme.name == "default"
 
 
-def test_load_paid_from_api():
-    """Paid theme fetched from API with valid license key."""
+def test_load_pro_theme_from_api():
+    """Pro theme fetched from API when Pro Kit is installed."""
     mock_resp = _mock_response({"theme": PROFESSIONAL_THEME_DATA})
 
-    with patch("kodadocs.themes.loader.urllib.request.urlopen", return_value=mock_resp):
-        theme = load_theme("professional", license_key="kd_pro_test123")
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch("kodadocs.themes.loader.urllib.request.urlopen", return_value=mock_resp),
+    ):
+        theme = load_theme("professional")
 
     assert isinstance(theme, ThemePreset)
     assert theme.name == "professional"
     assert theme.colors["brand"]["light"] == "#2563eb"
 
 
-def test_load_paid_caches_to_disk(isolated_cache):
+def test_load_pro_theme_caches_to_disk(isolated_cache):
     """After fetching from API, theme data is written to cache."""
     mock_resp = _mock_response({"theme": PROFESSIONAL_THEME_DATA})
 
-    with patch("kodadocs.themes.loader.urllib.request.urlopen", return_value=mock_resp):
-        load_theme("professional", license_key="kd_pro_test123")
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch("kodadocs.themes.loader.urllib.request.urlopen", return_value=mock_resp),
+    ):
+        load_theme("professional")
 
     cache_file = isolated_cache / "professional.json"
     assert cache_file.exists()
@@ -100,21 +107,24 @@ def test_load_paid_caches_to_disk(isolated_cache):
     assert cached["name"] == "professional"
 
 
-def test_load_paid_from_cache(isolated_cache):
+def test_load_pro_theme_from_cache(isolated_cache):
     """When cache is fresh, no HTTP call is made."""
     cache_dir = isolated_cache
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / "professional.json"
     cache_file.write_text(json.dumps(PROFESSIONAL_THEME_DATA))
 
-    with patch("kodadocs.themes.loader.urllib.request.urlopen") as mock_urlopen:
-        theme = load_theme("professional", license_key="kd_pro_test123")
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch("kodadocs.themes.loader.urllib.request.urlopen") as mock_urlopen,
+    ):
+        theme = load_theme("professional")
         mock_urlopen.assert_not_called()
 
     assert theme.name == "professional"
 
 
-def test_load_paid_api_down_uses_expired_cache(isolated_cache):
+def test_load_pro_theme_api_down_uses_expired_cache(isolated_cache):
     """When API is down but expired cache exists, use cached version."""
     cache_dir = isolated_cache
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -126,43 +136,52 @@ def test_load_paid_api_down_uses_expired_cache(isolated_cache):
     import os
     os.utime(cache_file, (old_time, old_time))
 
-    with patch(
-        "kodadocs.themes.loader.urllib.request.urlopen",
-        side_effect=urllib.error.URLError("Connection refused"),
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch(
+            "kodadocs.themes.loader.urllib.request.urlopen",
+            side_effect=urllib.error.URLError("Connection refused"),
+        ),
     ):
-        theme = load_theme("professional", license_key="kd_pro_test123")
+        theme = load_theme("professional")
 
     assert theme.name == "professional"
     assert theme.colors["brand"]["light"] == "#2563eb"
 
 
-def test_load_paid_api_down_no_cache_falls_back(isolated_cache):
+def test_load_pro_theme_api_down_no_cache_falls_back(isolated_cache):
     """When API is down and no cache exists, fall back to default theme."""
-    with patch(
-        "kodadocs.themes.loader.urllib.request.urlopen",
-        side_effect=urllib.error.URLError("Connection refused"),
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch(
+            "kodadocs.themes.loader.urllib.request.urlopen",
+            side_effect=urllib.error.URLError("Connection refused"),
+        ),
     ):
-        theme = load_theme("professional", license_key="kd_pro_test123")
+        theme = load_theme("professional")
 
     assert theme.name == "default"
 
 
-def test_load_paid_401_raises():
-    """Invalid license key (401) raises ValueError, no silent fallback."""
+def test_load_pro_theme_404_raises():
+    """Theme not found (404) raises ValueError."""
     error = urllib.error.HTTPError(
-        url="https://api.kodadocs.com/themes/professional",
-        code=401,
-        msg="Unauthorized",
+        url="https://api.kodadocs.com/themes/nonexistent",
+        code=404,
+        msg="Not Found",
         hdrs={},
-        fp=BytesIO(b'{"error": "Invalid key"}'),
+        fp=BytesIO(b'{"error": "Theme not found"}'),
     )
 
-    with patch(
-        "kodadocs.themes.loader.urllib.request.urlopen",
-        side_effect=error,
+    with (
+        patch("kodadocs.utils.license.has_local_pro_kit", return_value=True),
+        patch(
+            "kodadocs.themes.loader.urllib.request.urlopen",
+            side_effect=error,
+        ),
     ):
-        with pytest.raises(ValueError, match="Invalid or inactive license key"):
-            load_theme("professional", license_key="kd_pro_badkey")
+        with pytest.raises(ValueError, match="not found"):
+            load_theme("nonexistent")
 
 
 def test_list_themes_from_api():

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Set, Tuple, List, Optional
 from rich.console import Console
 from ..models import RunManifest
+from .enrichment import SYSTEM_PROMPT, _parse_json_response
 
 
 def compute_route_diff(
@@ -202,14 +203,15 @@ def incremental_enrichment_step(
         response = client.messages.create(
             model=understanding_model,
             max_tokens=1500,
+            system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": structure_prompt}],
         )
         update_cost(response.usage, understanding_model)
         content_text = response.content[0].text.strip()
 
-        json_match = re.search(r"\{.*\}", content_text, re.DOTALL)
-        if json_match:
-            plan = json.loads(json_match.group(0))
+        parsed = _parse_json_response(content_text)
+        if parsed:
+            plan = parsed
         else:
             console.print(
                 "[yellow]Could not parse AI structure response. Creating default articles.[/yellow]"
@@ -318,6 +320,7 @@ def incremental_enrichment_step(
         art_response = client.messages.create(
             model=generation_model,
             max_tokens=3000,
+            system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": content_blocks}],
         )
         update_cost(art_response.usage, generation_model)
@@ -326,19 +329,10 @@ def incremental_enrichment_step(
         content = None
         score = 0.5
 
-        json_code_block = re.search(r"```json\s*(.*?)\s*```", art_text, re.DOTALL)
-        json_str = json_code_block.group(1) if json_code_block else None
-        if not json_str:
-            json_match = re.search(r"\{.*\}", art_text, re.DOTALL)
-            json_str = json_match.group(0) if json_match else None
-
-        if json_str:
-            try:
-                art_data = json.loads(json_str)
-                content = art_data.get("content")
-                score = art_data.get("confidence_score", 0.5)
-            except Exception:
-                pass
+        parsed = _parse_json_response(art_text)
+        if parsed:
+            content = parsed.get("content")
+            score = parsed.get("confidence_score", 0.5)
 
         if not content:
             content = art_text

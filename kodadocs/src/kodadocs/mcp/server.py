@@ -31,16 +31,15 @@ def capture_screenshots(
     auth: dict | None,
     output_dir: str,
     blur_pii: bool = True,
-    license_key: str | None = None,
 ) -> str:
     """Capture screenshots for discovered routes using Playwright.
     Launches headless Chromium, authenticates if auth is provided,
     navigates to each route, captures screenshots, and extracts DOM elements.
-    Returns JSON with screenshots dict and dom_elements dict.
-    Free tier: limited to 15 pages, no auth support. Pro Kit unlocks unlimited pages and auth capture.
+    Returns JSON with screenshots dict, dom_elements dict, and pii_regions.
+    Free tier: limited to 15 pages, no auth support. Pro Kit (installed skills) unlocks unlimited pages and auth.
     """
     return capture_screenshots_tool(
-        routes, app_url, auth, output_dir, blur_pii=blur_pii, license_key=license_key
+        routes, app_url, auth, output_dir, blur_pii=blur_pii
     )
 
 
@@ -51,7 +50,6 @@ def capture_targeted(
     auth: dict | None,
     output_dir: str,
     blur_pii: bool = True,
-    license_key: str | None = None,
 ) -> str:
     """Capture targeted screenshots of specific CSS selectors or clipped regions.
     Each target needs: route, label, and either selector (CSS) or clip ({x,y,width,height}).
@@ -60,7 +58,7 @@ def capture_targeted(
     Returns JSON with status and targeted_screenshots dict (label -> path).
     """
     return capture_targeted_tool(
-        targets, app_url, auth, output_dir, blur_pii=blur_pii, license_key=license_key
+        targets, app_url, auth, output_dir, blur_pii=blur_pii
     )
 
 
@@ -75,7 +73,6 @@ def record_gif(
     width: int = 1280,
     height: int = 720,
     blur_pii: bool = True,
-    license_key: str | None = None,
 ) -> str:
     """Record a multi-step browser interaction as an animated GIF.
     Each step needs: action (navigate|click|type|scroll|wait|hover), target (CSS selector or path), value (optional).
@@ -86,7 +83,7 @@ def record_gif(
     return record_gif_tool(
         steps, app_url, auth, output_dir,
         label=label, frame_duration_ms=frame_duration_ms, width=width, height=height,
-        blur_pii=blur_pii, license_key=license_key,
+        blur_pii=blur_pii,
     )
 
 
@@ -124,12 +121,11 @@ def assemble_vitepress(
     feature_highlights: list[dict] | None = None,
     show_product_summary: bool = True,
     theme_name: str | None = None,
-    license_key: str | None = None,
 ) -> str:
     """Assemble a VitePress static site from generated articles and screenshots.
     Creates index page, article markdown files, VitePress config, theme with brand color, and package.json.
     Pass theme_name to use a built-in theme preset (default, professional, minimal, playful, dark-modern, docs-classic).
-    Pro themes require the Pro Kit (installed locally).
+    Pro themes and custom branding require the Pro Kit (installed locally).
     """
     return assemble_vitepress_tool(
         articles,
@@ -146,7 +142,6 @@ def assemble_vitepress(
         feature_highlights=feature_highlights,
         show_product_summary=show_product_summary,
         theme_name=theme_name,
-        license_key=license_key,
     )
 
 
@@ -173,7 +168,7 @@ def deploy_site(
 ) -> str:
     """Deploy the generated VitePress site to a hosting provider.
     Supported providers: cloudflare, vercel, netlify, github-pages.
-    Pro Kit removes the badge on self-hosted deploys. Pass license_key for hosted deploy at yourapp.kodadocs.com ($5/mo).
+    Pro Kit removes the badge on self-hosted deploys. Pass license_key for hosted deploy at yourapp.kodadocs.com.
     """
     return deploy_site_tool(
         site_dir,

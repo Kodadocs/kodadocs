@@ -1,7 +1,7 @@
 """Theme preset loader for KodaDocs.
 
-Default theme loads from local JSON. Paid themes (Pro) are fetched from the
-KodaDocs API with license key auth and cached locally for 24 hours.
+Default theme loads from local JSON. Pro themes require the Pro Kit to be
+installed and are fetched from the KodaDocs API with caching.
 """
 
 from __future__ import annotations
@@ -73,6 +73,15 @@ class ThemePreset:
 """
 
 
+_THEME_FIELDS = frozenset(f.name for f in ThemePreset.__dataclass_fields__.values())
+
+
+def _make_theme(data: dict) -> ThemePreset:
+    """Construct ThemePreset, ignoring unknown fields from API (e.g. ``tier``)."""
+    filtered = {k: v for k, v in data.items() if k in _THEME_FIELDS}
+    return ThemePreset(**filtered)
+
+
 def _cache_path(name: str) -> Path:
     return CACHE_DIR / f"{name}.json"
 
@@ -97,13 +106,12 @@ def _write_cache(name: str, data: dict) -> None:
     _cache_path(name).write_text(json.dumps(data))
 
 
-def _fetch_theme(name: str, license_key: str) -> dict:
+def _fetch_theme(name: str) -> dict:
     """Fetch a theme preset from the API. Raises on failure."""
     url = f"{KODADOCS_API_URL}/themes/{name}"
     req = urllib.request.Request(
         url,
         headers={
-            "X-License-Key": license_key,
             "User-Agent": "kodadocs-cli/1.0",
         },
     )
@@ -112,62 +120,56 @@ def _fetch_theme(name: str, license_key: str) -> dict:
     return data["theme"]
 
 
-def load_theme(name: str, license_key: Optional[str] = None) -> ThemePreset:
+def load_theme(name: str) -> ThemePreset:
     """Load a theme preset by name.
 
-    - "default" always loads from the local bundled preset (no API, no key).
-    - All other themes require a license_key and are fetched from the API,
-      with a 24-hour disk cache at ~/.cache/kodadocs/themes/.
+    - "default" always loads from the local bundled preset (no API).
+    - All other themes require the Pro Kit installed locally and are
+      fetched from the API with a 24-hour disk cache.
 
-    Graceful degradation for paid themes:
-    - No license key → ValueError (explicit error)
-    - 401 from API → ValueError (invalid key, no silent fallback)
+    Graceful degradation for Pro themes:
+    - No Pro Kit → ValueError (explicit error)
     - API down + valid cache (even expired) → use cached version
-    - API down + no cache → fall back to default theme with warning
+    - API down + no cache → fall back to default theme
     """
     if name == "default":
         preset_file = PRESETS_DIR / "default.json"
         data = json.loads(preset_file.read_text())
-        return ThemePreset(**data)
+        return _make_theme(data)
 
-    # Paid theme — require license key
-    if not license_key:
+    # Pro theme — require Pro Kit
+    from ..utils.license import is_pro
+    if not is_pro():
         from ..utils.messaging import show_theme_gate_message
         show_theme_gate_message(name)
         # Fall back to default theme
         preset_file = PRESETS_DIR / "default.json"
         data = json.loads(preset_file.read_text())
-        return ThemePreset(**data)
+        return _make_theme(data)
 
     # Try fresh cache first
     cached = _read_cache(name)
     if cached:
-        return ThemePreset(**cached)
+        return _make_theme(cached)
 
     # Fetch from API
     try:
-        theme_data = _fetch_theme(name, license_key)
+        theme_data = _fetch_theme(name)
         _write_cache(name, theme_data)
-        return ThemePreset(**theme_data)
+        return _make_theme(theme_data)
     except urllib.error.HTTPError as e:
-        if e.code == 401:
-            raise ValueError(
-                f"Invalid or inactive license key. Cannot load Pro theme '{name}'."
-            ) from None
         if e.code == 404:
             raise ValueError(f"Theme '{name}' not found.") from None
         # Other HTTP errors — try expired cache
         expired = _read_cache(name, allow_expired=True)
         if expired:
-            return ThemePreset(**expired)
-        # Fall back to default
+            return _make_theme(expired)
         return load_theme("default")
     except urllib.error.URLError:
         # Network error — try expired cache
         expired = _read_cache(name, allow_expired=True)
         if expired:
-            return ThemePreset(**expired)
-        # Fall back to default
+            return _make_theme(expired)
         return load_theme("default")
 
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from kodadocs.utils.badge import inject_badge
-from kodadocs.utils.license import is_pro_key
+from kodadocs.utils.license import is_pro, is_valid_license_key
 
 KODADOCS_API_URL = os.environ.get("KODADOCS_API_URL", "https://api.kodadocs.com")
 
@@ -281,7 +281,7 @@ def deploy(
 
     # kodadocs provider: validate, skip badge, call API directly
     if provider == "kodadocs":
-        if not is_pro_key(license_key):
+        if not is_valid_license_key(license_key):
             return DeployResult(
                 success=False,
                 provider=provider,
@@ -299,8 +299,8 @@ def deploy(
         # Badge injection is skipped for Pro/kodadocs provider
         return deploy_to_kodadocs(dist_dir, site_slug, license_key)
 
-    # Inject badge only for free tier (no valid Pro license key)
-    if not is_pro_key(license_key):
+    # Inject badge only for free tier (no Pro Kit installed)
+    if not is_pro():
         inject_badge(dist_dir)
 
     # Pre-flight: CLI installed?

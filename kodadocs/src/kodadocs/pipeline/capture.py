@@ -9,7 +9,7 @@ import urllib.request
 import urllib.error
 from PIL import Image
 from rich.console import Console
-from ..utils.license import is_pro_key
+from ..utils.license import is_pro
 from ..utils.messaging import show_page_limit_message, show_auth_gate_message
 
 
@@ -442,8 +442,7 @@ def capture_step(manifest: RunManifest):
     console = Console()
     app_url = manifest.config.app_url
     # Soft gate: auth requires Pro Kit
-    license_key = getattr(manifest.config, "license_key", None)
-    if not is_pro_key(license_key) and manifest.config.auth:
+    if not is_pro() and manifest.config.auth:
         show_auth_gate_message()
         manifest.config.auth = None  # Clear auth config for free tier
 
@@ -550,7 +549,7 @@ def capture_step(manifest: RunManifest):
         # Soft gate: free tier limited to 15 routes
         FREE_TIER_PAGE_LIMIT = 15
         routes_to_capture = manifest.discovered_routes
-        if not is_pro_key(license_key) and len(manifest.discovered_routes) > FREE_TIER_PAGE_LIMIT:
+        if not is_pro() and len(manifest.discovered_routes) > FREE_TIER_PAGE_LIMIT:
             show_page_limit_message(len(manifest.discovered_routes), FREE_TIER_PAGE_LIMIT)
             routes_to_capture = manifest.discovered_routes[:FREE_TIER_PAGE_LIMIT]
 

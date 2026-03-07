@@ -12,7 +12,7 @@ from kodadocs.utils.deploy import deploy, deploy_to_kodadocs
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
-VALID_LICENSE_KEY = "kd_pro_" + "a" * 20  # Satisfies is_pro_key() prefix check
+VALID_LICENSE_KEY = "kd_pro_" + "a" * 20  # Satisfies is_valid_license_key() prefix check
 
 
 def _make_dist(tmp_path: Path, with_html: bool = False) -> Path:

@@ -6,7 +6,7 @@ from kodadocs.models import RunManifest, SessionConfig, AuthConfig, Framework
 from kodadocs.pipeline.capture import capture_step, _check_app_reachable
 from kodadocs.pipeline.targeted_capture import capture_targeted
 from kodadocs.pipeline.gif_recorder import record_gif
-from kodadocs.utils.license import is_pro_key
+from kodadocs.utils.license import is_pro
 from kodadocs.utils.messaging import (
     page_limit_warning,
     auth_gate_warning,
@@ -23,7 +23,6 @@ def capture_screenshots_tool(
     auth: Optional[dict],
     output_dir: str,
     blur_pii: bool = True,
-    license_key: Optional[str] = None,
 ) -> str:
     """Capture screenshots for given routes using Playwright.
     Returns JSON with status, screenshots dict, and dom_elements dict.
@@ -45,10 +44,10 @@ def capture_screenshots_tool(
             }
         )
 
-    # MCP-layer soft gating
+    # Pro Kit gating
     warnings: list[str] = []
 
-    if not is_pro_key(license_key):
+    if not is_pro():
         if len(routes) > FREE_TIER_PAGE_LIMIT:
             warnings.append(page_limit_warning(len(routes), FREE_TIER_PAGE_LIMIT))
             routes = routes[:FREE_TIER_PAGE_LIMIT]
@@ -74,7 +73,6 @@ def capture_screenshots_tool(
         framework=Framework.UNKNOWN,
         skip_ai=True,
         blur_pii=blur_pii,
-        license_key=license_key,
     )
     manifest = RunManifest(
         session_id="mcp_capture",
@@ -115,13 +113,12 @@ def capture_targeted_tool(
     auth: Optional[dict],
     output_dir: str,
     blur_pii: bool = True,
-    license_key: Optional[str] = None,
 ) -> str:
     """Capture targeted screenshots of specific CSS selectors or clipped regions.
     Returns JSON with status and targeted_screenshots dict.
-    Hard Pro gate — requires a valid license key.
+    Hard Pro gate — requires the Pro Kit to be installed.
     """
-    if not is_pro_key(license_key):
+    if not is_pro():
         return json.dumps({
             "status": "error",
             "message": targeted_capture_gate_warning(),
@@ -177,13 +174,12 @@ def record_gif_tool(
     width: int = 1280,
     height: int = 720,
     blur_pii: bool = True,
-    license_key: Optional[str] = None,
 ) -> str:
     """Record a multi-step browser interaction as an animated GIF.
     Returns JSON with status, gif_path, frame_count, duration_seconds, file_size_bytes.
-    Hard Pro gate — requires a valid license key.
+    Hard Pro gate — requires the Pro Kit to be installed.
     """
-    if not is_pro_key(license_key):
+    if not is_pro():
         return json.dumps({
             "status": "error",
             "message": gif_recording_gate_warning(),

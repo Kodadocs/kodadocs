@@ -44,16 +44,17 @@ def test_assemble_applies_brand_color(tmp_path):
     screenshots_dir = tmp_path / "screenshots"
     screenshots_dir.mkdir()
 
-    assemble_vitepress_tool(
-        articles=[{"title": "Test", "content": "# Test"}],
-        screenshots_dir=str(screenshots_dir),
-        brand_color="#ff5500",
-        logo_path=None,
-        output_dir=str(output_dir),
-        project_name="test-app",
-        product_summary="Test.",
-        discovered_routes=["/"],
-    )
+    with patch("kodadocs.utils.vitepress.is_pro", return_value=True):
+        assemble_vitepress_tool(
+            articles=[{"title": "Test", "content": "# Test"}],
+            screenshots_dir=str(screenshots_dir),
+            brand_color="#ff5500",
+            logo_path=None,
+            output_dir=str(output_dir),
+            project_name="test-app",
+            product_summary="Test.",
+            discovered_routes=["/"],
+        )
     style_css = output_dir / ".vitepress" / "theme" / "style.css"
     assert style_css.exists()
     assert "#ff5500" in style_css.read_text()
@@ -201,16 +202,17 @@ def test_assemble_injects_logo_when_provided(tmp_path):
     logo_file = tmp_path / "my-logo.png"
     logo_file.write_bytes(b"fake-logo-data")
 
-    assemble_vitepress_tool(
-        articles=[{"title": "Test", "content": "# Test"}],
-        screenshots_dir=str(screenshots_dir),
-        brand_color="#3e8fb0",
-        logo_path=str(logo_file),
-        output_dir=str(output_dir),
-        project_name="test-app",
-        product_summary="Test.",
-        discovered_routes=["/"],
-    )
+    with patch("kodadocs.utils.vitepress.is_pro", return_value=True):
+        assemble_vitepress_tool(
+            articles=[{"title": "Test", "content": "# Test"}],
+            screenshots_dir=str(screenshots_dir),
+            brand_color="#3e8fb0",
+            logo_path=str(logo_file),
+            output_dir=str(output_dir),
+            project_name="test-app",
+            product_summary="Test.",
+            discovered_routes=["/"],
+        )
     # Logo copied to assets
     assert (output_dir / "assets" / "my-logo.png").exists()
     # Config references it
@@ -314,7 +316,10 @@ def test_assemble_applies_theme_preset(tmp_path):
         code_theme="github-dark",
     )
 
-    with patch("kodadocs.mcp.tools.output.load_theme", return_value=mock_theme):
+    with (
+        patch("kodadocs.utils.vitepress.is_pro", return_value=True),
+        patch("kodadocs.utils.vitepress.load_theme", return_value=mock_theme),
+    ):
         result_json = assemble_vitepress_tool(
             articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
             screenshots_dir=str(screenshots_dir),
@@ -325,7 +330,6 @@ def test_assemble_applies_theme_preset(tmp_path):
             product_summary="A test app.",
             discovered_routes=["/"],
             theme_name="professional",
-            license_key="kd_pro_test123",
         )
 
     style_css = (output_dir / ".vitepress" / "theme" / "style.css").read_text()
@@ -342,16 +346,17 @@ def test_assemble_falls_back_to_brand_color_without_theme(tmp_path):
     screenshots_dir.mkdir()
     output_dir = tmp_path / "output"
 
-    result_json = assemble_vitepress_tool(
-        articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
-        screenshots_dir=str(screenshots_dir),
-        brand_color="#ff0000",
-        logo_path=None,
-        output_dir=str(output_dir),
-        project_name="TestApp",
-        product_summary="A test app.",
-        discovered_routes=["/"],
-    )
+    with patch("kodadocs.utils.vitepress.is_pro", return_value=True):
+        result_json = assemble_vitepress_tool(
+            articles=[{"title": "Getting Started", "content": "# Hello\nWelcome."}],
+            screenshots_dir=str(screenshots_dir),
+            brand_color="#ff0000",
+            logo_path=None,
+            output_dir=str(output_dir),
+            project_name="TestApp",
+            product_summary="A test app.",
+            discovered_routes=["/"],
+        )
 
     style_css = (output_dir / ".vitepress" / "theme" / "style.css").read_text()
     assert "#ff0000" in style_css

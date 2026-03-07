@@ -195,7 +195,7 @@ class TestDeploy:
         assert "npm install" in result.error
 
     def test_deploy_injects_badge(self, tmp_path, monkeypatch):
-        """Badge is injected into HTML files before deploying."""
+        """Badge is injected into HTML files before deploying (free tier)."""
         dist = tmp_path / "dist"
         dist.mkdir()
         html = dist / "index.html"
@@ -209,6 +209,7 @@ class TestDeploy:
         mock_result.stderr = ""
 
         with (
+            patch("kodadocs.utils.deploy.is_pro", return_value=False),
             patch(
                 "kodadocs.utils.deploy.shutil.which", return_value="/usr/bin/wrangler"
             ),

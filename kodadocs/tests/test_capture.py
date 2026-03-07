@@ -501,6 +501,7 @@ def test_capture_step_triggers_generic_crawl_for_auth_apps(tmp_path):
     crawled_routes = ["/dashboard", "/tenants", "/properties", "/reports"]
 
     with (
+        patch("kodadocs.pipeline.capture.is_pro", return_value=True),
         patch("kodadocs.pipeline.capture.sync_playwright") as mock_pw,
         patch("kodadocs.pipeline.capture._check_app_reachable", return_value=True),
         patch("kodadocs.pipeline.capture._navigate_with_layered_wait"),
@@ -564,6 +565,7 @@ def test_capture_step_skips_generic_crawl_when_routes_found(tmp_path):
     manifest.discovered_routes = ["/", "/dashboard", "/settings"]  # 3 routes already
 
     with (
+        patch("kodadocs.pipeline.capture.is_pro", return_value=True),
         patch("kodadocs.pipeline.capture.sync_playwright") as mock_pw,
         patch("kodadocs.pipeline.capture._check_app_reachable", return_value=True),
         patch("kodadocs.pipeline.capture._navigate_with_layered_wait"),
